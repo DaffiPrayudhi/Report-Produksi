@@ -1,0 +1,19 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Run PHPUnit",
+            "type": "shell",
+            "command": "vendor/bin/phpunit",
+            "args": [
+                "--configuration",
+                "./phpunit.xml.dist"
+            ],
+            "problemMatcher": [],
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            }
+        }
+    ]
+}

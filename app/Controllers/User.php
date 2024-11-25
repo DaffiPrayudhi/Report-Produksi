@@ -433,9 +433,14 @@ class User extends Controller
     
             // Konversi nilai float ke persentase
             foreach ($filteredData as &$data) {
-                $data['oee'] = $data['oee'] * 100; 
-                $data['bts'] = $data['bts'] * 100;
-                $data['avail'] = $data['avail'] * 100;
+                $data['oee'] = round ($data['oee'] * 100, 2); 
+                $data['bts'] = round ($data['bts'] * 100,2);
+                $data['avail'] = round ($data['avail'] * 100, 2);
+
+                // tanpa batasan float (desimal)
+                // $data['oee'] = $data['oee'] * 100; 
+                // $data['bts'] = $data['bts'] * 100;
+                // $data['avail'] = $data['avail'] * 100;
             }
         } else {
             $filteredData = []; 
@@ -570,10 +575,10 @@ class User extends Controller
         $currentYear = date('Y');
         $previousYear = $currentYear - 1;
 
-        $allData = $this->Average->getMonthlyDataWithJoin($line, $currentYear);
+        $allData = $this->CalculationMonth->getMonthlyDataWithJoin($line, $currentYear);
         $paramData = $this->Parameter->getYearlyDataWithJoin($line, $previousYear);
         $paramDataMnth = $this->Parameter->getYearlyDataWithJoin($line, $currentYear);
-        $lines = $this->Average->getDistinctLines();
+        $lines = $this->CalculationMonth->getDistinctLines();
 
         $data = [
             'report_data' => $allData,
@@ -582,6 +587,7 @@ class User extends Controller
             'line' => $line,
             'lines' => $lines,
         ];
+
 
         return view('admnscrap/dashboardscrap_grafik_monthly', $data);
     }
@@ -2500,7 +2506,6 @@ class User extends Controller
 
         return redirect()->to('admnscrap/part_number_scrap_df');
     }
-
 
     public function CalculateData()
     {

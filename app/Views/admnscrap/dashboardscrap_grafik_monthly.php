@@ -313,6 +313,7 @@ Dashboard Report Produksi
             },
             yAxis: {
                 min: 0,
+                max: 100,
                 title: {
                     text: 'Presentase (%)'
                 },
@@ -365,13 +366,14 @@ Dashboard Report Produksi
         }
 
         filteredData.forEach(item => {
-            const monthIndex = new Date(item.years, item.months - 1).getMonth();
+            const monthIndex = new Date(`${item.month} 1, ${item.year}`).getMonth();
             if (monthIndex <= currentMonth) {
                 btsValues[monthIndex] = item.bts * 100;
                 oeeValues[monthIndex] = item.oee * 100;
                 availValues[monthIndex] = item.avail * 100;
             }
         });
+
 
         // Filter months
         const filteredDataBTSMnth = line ? paramDataMnth.filter(item => item.line === line && item.years == currentYear && item.parameter === 'bts') : [];
