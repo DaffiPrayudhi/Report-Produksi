@@ -4,16 +4,16 @@ namespace App\Models;
 
 use CodeIgniter\Model;
 
-class Parameter extends Model
+class TestModel extends Model
 {
-    protected $DBGroup = 'oeeManual';
-    protected $table            = 'grafik_produksi_parameter';
+    protected $DBGroup = 'default';
+    protected $table            = 'testinput';
     protected $primaryKey       = 'id';
-    protected $useAutoIncrement = true;
+    protected $useAutoIncrement = true; 
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['parameter','target','years','line'];
+    protected $allowedFields    = ['nama','tgl_bln_thn','no_hp','alamat'];
 
     protected bool $allowEmptyInserts = false;
     protected bool $updateOnlyChanged = true;
@@ -44,25 +44,7 @@ class Parameter extends Model
     protected $afterFind      = [];
     protected $beforeDelete   = [];
     protected $afterDelete    = [];
-
-    public function getYearlyDataWithJoin($line, $previousYear)
-    {
-        $builder = $this->db->table($this->table);
-        $builder->select('grafik_produksi_parameter.parameter, grafik_produksi_parameter.target, grafik_produksi_parameter.years, grafik_produksi_parameter.line');
-        $builder->where('grafik_produksi_parameter.years', $previousYear);
-        $builder->whereIn('grafik_produksi_parameter.parameter', ['bts FY', 'oee FY', 'avail FY', 'bts', 'oee','avail']);
-    
-        if ($line) {
-            $builder->where('grafik_produksi_parameter.line', $line);
-        }
-    
-        return $builder->get()->getResultArray();
-    }
-
-    
-    
-    
-
     
 }
+
 

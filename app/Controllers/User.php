@@ -588,7 +588,6 @@ class User extends Controller
             'lines' => $lines,
         ];
 
-
         return view('admnscrap/dashboardscrap_grafik_monthly', $data);
     }
 
@@ -597,22 +596,18 @@ class User extends Controller
         $line = $this->request->getGet('line');
         $currentYear = date('Y');
         $previousYear = $currentYear - 1;
-    
-        $paramData = $this->Parameter->findAll();
-    
-        // Filter data based on the conditions for BTS, OEE, and Availability
-        if ($line) {
-            $paramData = array_filter($paramData, function($item) use ($line, $previousYear) {
-                return $item['line'] === $line && $item['years'] == $previousYear && (
-                    $item['parameter'] === 'bts FY' || 
-                    $item['parameter'] === 'oee FY' || 
-                    $item['parameter'] === 'avail FY'
-                );
-            });
-        }
-    
+
+        $allData = $this->CalculationMonth->getMonthlyDataWithJointest($line, $currentYear);
+        $paramData = $this->Parameter->getYearlyDataWithJointest($line, $previousYear);
+        $paramDataMnth = $this->Parameter->getYearlyDataWithJointest($line, $currentYear);
+        $lines = $this->CalculationMonth->getDistinctLinestest();
+
         $data = [
+            'report_data' => $allData,
             'param_data' => $paramData,
+            'param_data_mnth' => $paramDataMnth,
+            'line' => $line,
+            'lines' => $lines,
         ];
         
         return view('admnscrap/dashboardscrap_grafik_monthly_test', $data);
@@ -2697,9 +2692,9 @@ class User extends Controller
         $year = $date->format('Y');
 
         $months = [
-            '01' => 'Januari', '02' => 'Februari', '03' => 'Maret', '04' => 'April',
-            '05' => 'Mei', '06' => 'Juni', '07' => 'Juli', '08' => 'Agustus',
-            '09' => 'September', '10' => 'Oktober', '11' => 'November', '12' => 'Desember'
+            '01' => 'January', '02' => 'February', '03' => 'March', '04' => 'April',
+            '05' => 'May', '06' => 'June', '07' => 'July', '08' => 'August',
+            '09' => 'September', '10' => 'October', '11' => 'November', '12' => 'December'
         ];
 
         $monthName = $months[$monthNumber];

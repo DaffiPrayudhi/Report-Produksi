@@ -32,6 +32,7 @@ $routes->post('user/submitPartNumberFA', 'User::submitPartNumberFA');
 $routes->post('user/CalculateData', 'User::CalculateData');
 $routes->post('user/CalculateDataWeek', 'User::CalculateDataWeek');
 $routes->post('user/CalculateDataAvg', 'User::CalculateDataAvg');
+$routes->post('submit-test', 'Asset::submittest');
 
 
 $routes->get('user/clearSavedData', 'User::clearSavedData');
@@ -125,6 +126,7 @@ $routes->group('admnscrap', ['filter' => 'authRole:3'], function ($routes) {
     $routes->get('update_delete_fa', 'User::update_delete_fa');
     $routes->get('profilescrap', 'Role::profilescrap');
     $routes->post('updatePasswordwrhs', 'Role::updatePasswordwrhs');
+    $routes->get('testinput', 'Asset::testinput');
 });
 
 $routes->get('dashboard', 'DefaultDashboard::index');
