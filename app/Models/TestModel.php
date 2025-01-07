@@ -4,16 +4,16 @@ namespace App\Models;
 
 use CodeIgniter\Model;
 
-class DowntimeWeek extends Model
+class TestModel extends Model
 {
-    protected $DBGroup = 'oeeManual';
-    protected $table            = 'week_downtime';
-    protected $primaryKey       = 'id_dtm';
+    protected $DBGroup = 'default';
+    protected $table            = 'testinput';
+    protected $primaryKey       = 'id';
     protected $useAutoIncrement = true; 
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['week', 'v_week', 'year', 'line','station','downtime'];
+    protected $allowedFields    = ['nama','tgl_bln_thn','no_hp','alamat'];
 
     protected bool $allowEmptyInserts = false;
     protected bool $updateOnlyChanged = true;

@@ -117,6 +117,7 @@ Dashboard Report Produksi
                                 <thead class="table-header">
                                     <tr>
                                         <th>Area</th>
+                                        <th>Bulan</th>
                                         <th>OEE (%)</th>
                                         <th>BTS (%)</th>
                                         <th>Availability (%)</th>
@@ -127,6 +128,7 @@ Dashboard Report Produksi
                                         <?php foreach ($report_data as $row): ?>
                                             <tr>
                                                 <td><?= $row['line']; ?></td>
+                                                <td><?= $row['month']; ?></td>
                                                 <td><?= number_format($row['oee'] * 100); ?></td>
                                                 <td><?= number_format($row['bts'] * 100); ?></td>
                                                 <td><?= number_format($row['avail'] * 100); ?></td>
@@ -233,7 +235,6 @@ Dashboard Report Produksi
 </script>
     
 <script>
-
     document.addEventListener("DOMContentLoaded", function(){
         document.getElementById("lineSelect").focus();
     });
@@ -252,6 +253,9 @@ Dashboard Report Produksi
     Highcharts.chart('availChart1', createChartConfigFY('Availability FY', [], null));
 
     function createChartConfig(metric, categories = [], data = [], targetData = null) {
+        // fungsi untuk membatasi jumlah float(desimal)
+        data = data.map(value => parseFloat(value.toFixed(2)));
+
         return {
             chart: {
                 type: 'column'
@@ -308,7 +312,7 @@ Dashboard Report Produksi
             xAxis: {
                 categories: [previousYear.toString()],
                 title: {
-                    text: 'Tahun'
+                    text: 'Tahun'   
                 }
             },
             yAxis: {
@@ -358,8 +362,26 @@ Dashboard Report Produksi
         const availValues = [];
         const currentMonth = new Date().getMonth();
 
-        for (let i = 0; i <= currentMonth; i++) {
-            months.push(new Intl.DateTimeFormat('en-US', { month: 'long' }).format(new Date(0, i)));
+        // untuk fungsi menampilkan hanya sampai bulan saat ini
+        // for (let i = 0; i <= currentMonth; i++) {
+        //     months.push(new Intl.DateTimeFormat('en-US', { month: 'long' }).format(new Date(0, i)));
+        //     btsValues.push(0);
+        //     oeeValues.push(0);
+        //     availValues.push(0);
+        // }
+
+        // filteredData.forEach(item => {
+        //     const monthIndex = new Date(`${item.month} 1, ${item.year}`).getMonth();
+        //     if (monthIndex <= currentMonth) {
+        //         btsValues[monthIndex] = item.bts * 100;
+        //         oeeValues[monthIndex] = item.oee * 100;
+        //         availValues[monthIndex] = item.avail * 100;
+        //     }
+        // });
+
+        // menampilkan bulan secara keseluruhan
+        for (let i = 0; i < 12; i++) {
+            months.push(new Intl.DateTimeFormat('id-ID', { month: 'long' }).format(new Date(0, i)));
             btsValues.push(0);
             oeeValues.push(0);
             availValues.push(0);
@@ -367,13 +389,12 @@ Dashboard Report Produksi
 
         filteredData.forEach(item => {
             const monthIndex = new Date(`${item.month} 1, ${item.year}`).getMonth();
-            if (monthIndex <= currentMonth) {
+            if (monthIndex < 12) {
                 btsValues[monthIndex] = item.bts * 100;
                 oeeValues[monthIndex] = item.oee * 100;
                 availValues[monthIndex] = item.avail * 100;
             }
         });
-
 
         // Filter months
         const filteredDataBTSMnth = line ? paramDataMnth.filter(item => item.line === line && item.years == currentYear && item.parameter === 'bts') : [];
@@ -406,8 +427,6 @@ Dashboard Report Produksi
         Highcharts.chart('btsChart1', createChartConfigFY('BTS FY', filteredDataBTSFY, targetValueBTS));
         Highcharts.chart('oeeChart1', createChartConfigFY('OEE FY', filteredDataOEEFY, targetValueOEE));
         Highcharts.chart('availChart1', createChartConfigFY('Availability FY', filteredDataAvailFY, targetValueAvail));
-
-
     }
 </script>
 

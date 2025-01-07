@@ -115,6 +115,8 @@ Calculation Input
             }
         })
         .catch(error => console.error('Error:', error));
+        console.log('Sending data:', { tgl_bln_thn, shift, line });
+
     }
 </script>
 

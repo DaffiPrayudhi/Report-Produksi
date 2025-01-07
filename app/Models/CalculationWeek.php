@@ -13,7 +13,7 @@ class CalculationWeek extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['week','year','line','oee','bts','avail','s_downtime'];
+    protected $allowedFields    = ['week', 'v_week', 'year','line','oee','bts','avail','s_downtime'];
 
     protected bool $allowEmptyInserts = false;
     protected bool $updateOnlyChanged = true;

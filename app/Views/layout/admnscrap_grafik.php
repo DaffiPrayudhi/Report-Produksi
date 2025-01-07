@@ -167,6 +167,12 @@
                                         <p>Approval Table</p>
                                     </a>
                                 </li>
+                                <li class="nav-item">
+                                    <a href="<?= base_url('admnscrap/testinput'); ?>" class="nav-link">
+                                        <i class="fas fa-edit nav-icon"></i>
+                                        <p>Test</p>
+                                    </a>
+                                </li>
                             </ul>
                         </li>
                     </ul>

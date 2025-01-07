@@ -58,6 +58,7 @@ class Parameter extends Model
     
         return $builder->get()->getResultArray();
     }
+
     
     
     

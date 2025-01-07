@@ -13,7 +13,7 @@ class ProduksiWeek extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['week', 'year', 'line', 'model', 'actual_prod', 'plan_prod','cycle_time','cta'];
+    protected $allowedFields    = ['week', 'v_week', 'year', 'line', 'model', 'actual_prod', 'plan_prod','cycle_time','cta'];
 
     protected bool $allowEmptyInserts = false;
     protected bool $updateOnlyChanged = true;

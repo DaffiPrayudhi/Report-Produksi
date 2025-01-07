@@ -65,6 +65,26 @@ class CalculationMonth extends Model
         $builder->select('line');
         return $builder->get()->getResultArray();
     }
+    public function getMonthlyDataWithJointest($line, $year)
+    {
+        $builder = $this->db->table($this->table);
+        $builder->select('month_calculation.month, month_calculation.year, month_calculation.line, month_calculation.oee, month_calculation.bts, month_calculation.avail');
+        $builder->where('month_calculation.year', $year);
+
+        if ($line) {
+            $builder->where('month_calculation.line', $line);
+        }
+
+        return $builder->get()->getResultArray();
+    }
+
+    public function getDistinctLinestest()
+    {
+        $builder = $this->db->table($this->table);
+        $builder->distinct();
+        $builder->select('line');
+        return $builder->get()->getResultArray();
+    }
 
 }
 

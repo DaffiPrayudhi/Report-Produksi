@@ -13,7 +13,7 @@ class ScheduleWeek extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['week','year', 'line','reguler','overtime','ro'];
+    protected $allowedFields    = ['week', 'v_week', 'year', 'line','reguler','overtime','ro'];
 
     protected bool $allowEmptyInserts = false;
     protected bool $updateOnlyChanged = true;

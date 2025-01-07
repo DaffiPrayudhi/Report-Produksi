@@ -588,7 +588,6 @@ class User extends Controller
             'lines' => $lines,
         ];
 
-
         return view('admnscrap/dashboardscrap_grafik_monthly', $data);
     }
 
@@ -597,22 +596,18 @@ class User extends Controller
         $line = $this->request->getGet('line');
         $currentYear = date('Y');
         $previousYear = $currentYear - 1;
-    
-        $paramData = $this->Parameter->findAll();
-    
-        // Filter data based on the conditions for BTS, OEE, and Availability
-        if ($line) {
-            $paramData = array_filter($paramData, function($item) use ($line, $previousYear) {
-                return $item['line'] === $line && $item['years'] == $previousYear && (
-                    $item['parameter'] === 'bts FY' || 
-                    $item['parameter'] === 'oee FY' || 
-                    $item['parameter'] === 'avail FY'
-                );
-            });
-        }
-    
+
+        $allData = $this->CalculationMonth->getMonthlyDataWithJointest($line, $currentYear);
+        $paramData = $this->Parameter->getYearlyDataWithJointest($line, $previousYear);
+        $paramDataMnth = $this->Parameter->getYearlyDataWithJointest($line, $currentYear);
+        $lines = $this->CalculationMonth->getDistinctLinestest();
+
         $data = [
+            'report_data' => $allData,
             'param_data' => $paramData,
+            'param_data_mnth' => $paramDataMnth,
+            'line' => $line,
+            'lines' => $lines,
         ];
         
         return view('admnscrap/dashboardscrap_grafik_monthly_test', $data);
@@ -1538,58 +1533,58 @@ class User extends Controller
         ];
     
         $weeks = [
-            ['W1', '2024-01-01', '2024-01-07'],
-            ['W2', '2024-01-08', '2024-01-14'],
-            ['W3', '2024-01-15', '2024-01-21'],
-            ['W4', '2024-01-22', '2024-01-28'],
-            ['W5', '2024-01-29', '2024-02-04'],
-            ['W6', '2024-02-05', '2024-02-11'],
-            ['W7', '2024-02-12', '2024-02-18'],
-            ['W8', '2024-02-19', '2024-02-25'],
-            ['W9', '2024-02-26', '2024-03-03'],
-            ['W10', '2024-03-04', '2024-03-10'],
-            ['W11', '2024-03-11', '2024-03-17'],
-            ['W12', '2024-03-18', '2024-03-24'],
-            ['W13', '2024-03-25', '2024-03-31'],
-            ['W14', '2024-04-01', '2024-04-07'],
-            ['W15', '2024-04-08', '2024-04-14'],
-            ['W16', '2024-04-15', '2024-04-21'],
-            ['W17', '2024-04-22', '2024-04-28'],
-            ['W18', '2024-04-29', '2024-05-05'],
-            ['W19', '2024-05-06', '2024-05-12'],
-            ['W20', '2024-05-13', '2024-05-19'],
-            ['W21', '2024-05-20', '2024-05-26'],
-            ['W22', '2024-05-27', '2024-06-02'],
-            ['W23', '2024-06-03', '2024-06-09'],
-            ['W24', '2024-06-10', '2024-06-16'],
-            ['W25', '2024-06-17', '2024-06-23'],
-            ['W26', '2024-06-24', '2024-06-30'],
-            ['W27', '2024-07-01', '2024-07-07'],
-            ['W28', '2024-07-08', '2024-07-14'],
-            ['W29', '2024-07-15', '2024-07-21'],
-            ['W30', '2024-07-22', '2024-07-28'],
-            ['W31', '2024-07-29', '2024-08-04'],
-            ['W32', '2024-08-05', '2024-08-11'],
-            ['W33', '2024-08-12', '2024-08-18'],
-            ['W34', '2024-08-19', '2024-08-25'],
-            ['W35', '2024-08-26', '2024-09-01'],
-            ['W36', '2024-09-02', '2024-09-08'],
-            ['W37', '2024-09-09', '2024-09-15'],
-            ['W38', '2024-09-16', '2024-09-22'],
-            ['W39', '2024-09-23', '2024-09-29'],
-            ['W40', '2024-09-30', '2024-10-06'],
-            ['W41', '2024-10-07', '2024-10-13'],
-            ['W42', '2024-10-14', '2024-10-20'],
-            ['W43', '2024-10-21', '2024-10-27'],
-            ['W44', '2024-10-28', '2024-11-03'],
-            ['W45', '2024-11-04', '2024-11-10'],
-            ['W46', '2024-11-11', '2024-11-17'],
-            ['W47', '2024-11-18', '2024-11-24'],
-            ['W48', '2024-11-25', '2024-12-01'],
-            ['W49', '2024-12-02', '2024-12-08'],
-            ['W50', '2024-12-09', '2024-12-15'],
-            ['W51', '2024-12-16', '2024-12-22'],
-            ['W52', '2024-12-23', '2024-12-29']
+            ['W1', '2024-12-30', '2025-01-05'],
+            ['W2', '2025-01-06', '2025-01-12'],
+            ['W3', '2025-01-13', '2025-01-19'],
+            ['W4', '2025-01-20', '2025-01-26'],
+            ['W5', '2025-01-27', '2025-02-02'],
+            ['W6', '2025-02-03', '2025-02-09'],
+            ['W7', '2025-02-10', '2025-02-16'],
+            ['W8', '2025-02-17', '2025-02-23'],
+            ['W9', '2025-02-24', '2025-03-02'],
+            ['W10', '2025-03-03', '2025-03-09'],
+            ['W11', '2025-03-10', '2025-03-16'],
+            ['W12', '2025-03-17', '2025-03-23'],
+            ['W13', '2025-03-24', '2025-03-30'],
+            ['W14', '2025-03-31', '2025-04-06'],
+            ['W15', '2025-04-07', '2025-04-13'],
+            ['W16', '2025-04-14', '2025-04-20'],
+            ['W17', '2025-04-21', '2025-04-27'],
+            ['W18', '2025-04-28', '2025-05-04'],
+            ['W19', '2025-05-05', '2025-05-11'],
+            ['W20', '2025-05-12', '2025-05-18'],
+            ['W21', '2025-05-19', '2025-05-25'],
+            ['W22', '2025-05-26', '2025-06-01'],
+            ['W23', '2025-06-02', '2025-06-08'],
+            ['W24', '2025-06-09', '2025-06-15'],
+            ['W25', '2025-06-16', '2025-06-22'],
+            ['W26', '2025-06-23', '2025-06-29'],
+            ['W27', '2025-06-30', '2025-07-06'],
+            ['W28', '2025-07-07', '2025-07-13'],
+            ['W29', '2025-07-14', '2025-07-20'],
+            ['W30', '2025-07-21', '2025-07-27'],
+            ['W31', '2025-07-28', '2025-08-03'],
+            ['W32', '2025-08-04', '2025-08-10'],
+            ['W33', '2025-08-11', '2025-08-17'],
+            ['W34', '2025-08-18', '2025-08-24'],
+            ['W35', '2025-08-25', '2025-08-31'],
+            ['W36', '2025-09-01', '2025-09-07'],
+            ['W37', '2025-09-08', '2025-09-14'],
+            ['W38', '2025-09-15', '2025-09-21'],
+            ['W39', '2025-09-22', '2025-09-28'],
+            ['W40', '2025-09-29', '2025-10-05'],
+            ['W41', '2025-10-06', '2025-10-12'],
+            ['W42', '2025-10-13', '2025-10-19'],
+            ['W43', '2025-10-20', '2025-10-26'],
+            ['W44', '2025-10-27', '2025-11-02'],
+            ['W45', '2025-11-03', '2025-11-09'],
+            ['W46', '2025-11-10', '2025-11-16'],
+            ['W47', '2025-11-17', '2025-11-23'],
+            ['W48', '2025-11-24', '2025-11-30'],
+            ['W49', '2025-12-01', '2025-12-07'],
+            ['W50', '2025-12-08', '2025-12-14'],
+            ['W51', '2025-12-15', '2025-12-21'],
+            ['W52', '2025-12-22', '2025-12-28']
         ];
     
         foreach ($tempData as $entry) {
@@ -1630,8 +1625,11 @@ class User extends Controller
                 ];
                 $modelWeekDowntime->update($existingData['id_dtm'], $updatedData);
             } else {
+                $v_week = intval(substr($week,1));
+
                 $dataWeekDowntime = [
                     'week' => $week,
+                    'v_week' => $v_week,
                     'year' => $year,
                     'line' => $entry->line,
                     'station' => $entry->station,
@@ -2160,58 +2158,58 @@ class User extends Controller
         ];
 
         $weeks = [
-            ['W1', '2024-01-01', '2024-01-07'],
-            ['W2', '2024-01-08', '2024-01-14'],
-            ['W3', '2024-01-15', '2024-01-21'],
-            ['W4', '2024-01-22', '2024-01-28'],
-            ['W5', '2024-01-29', '2024-02-04'],
-            ['W6', '2024-02-05', '2024-02-11'],
-            ['W7', '2024-02-12', '2024-02-18'],
-            ['W8', '2024-02-19', '2024-02-25'],
-            ['W9', '2024-02-26', '2024-03-03'],
-            ['W10', '2024-03-04', '2024-03-10'],
-            ['W11', '2024-03-11', '2024-03-17'],
-            ['W12', '2024-03-18', '2024-03-24'],
-            ['W13', '2024-03-25', '2024-03-31'],
-            ['W14', '2024-04-01', '2024-04-07'],
-            ['W15', '2024-04-08', '2024-04-14'],
-            ['W16', '2024-04-15', '2024-04-21'],
-            ['W17', '2024-04-22', '2024-04-28'],
-            ['W18', '2024-04-29', '2024-05-05'],
-            ['W19', '2024-05-06', '2024-05-12'],
-            ['W20', '2024-05-13', '2024-05-19'],
-            ['W21', '2024-05-20', '2024-05-26'],
-            ['W22', '2024-05-27', '2024-06-02'],
-            ['W23', '2024-06-03', '2024-06-09'],
-            ['W24', '2024-06-10', '2024-06-16'],
-            ['W25', '2024-06-17', '2024-06-23'],
-            ['W26', '2024-06-24', '2024-06-30'],
-            ['W27', '2024-07-01', '2024-07-07'],
-            ['W28', '2024-07-08', '2024-07-14'],
-            ['W29', '2024-07-15', '2024-07-21'],
-            ['W30', '2024-07-22', '2024-07-28'],
-            ['W31', '2024-07-29', '2024-08-04'],
-            ['W32', '2024-08-05', '2024-08-11'],
-            ['W33', '2024-08-12', '2024-08-18'],
-            ['W34', '2024-08-19', '2024-08-25'],
-            ['W35', '2024-08-26', '2024-09-01'],
-            ['W36', '2024-09-02', '2024-09-08'],
-            ['W37', '2024-09-09', '2024-09-15'],
-            ['W38', '2024-09-16', '2024-09-22'],
-            ['W39', '2024-09-23', '2024-09-29'],
-            ['W40', '2024-09-30', '2024-10-06'],
-            ['W41', '2024-10-07', '2024-10-13'],
-            ['W42', '2024-10-14', '2024-10-20'],
-            ['W43', '2024-10-21', '2024-10-27'],
-            ['W44', '2024-10-28', '2024-11-03'],
-            ['W45', '2024-11-04', '2024-11-10'],
-            ['W46', '2024-11-11', '2024-11-17'],
-            ['W47', '2024-11-18', '2024-11-24'],
-            ['W48', '2024-11-25', '2024-12-01'],
-            ['W49', '2024-12-02', '2024-12-08'],
-            ['W50', '2024-12-09', '2024-12-15'],
-            ['W51', '2024-12-16', '2024-12-22'],
-            ['W52', '2024-12-23', '2024-12-29']
+            ['W1', '2024-12-30', '2025-01-05'],
+            ['W2', '2025-01-06', '2025-01-12'],
+            ['W3', '2025-01-13', '2025-01-19'],
+            ['W4', '2025-01-20', '2025-01-26'],
+            ['W5', '2025-01-27', '2025-02-02'],
+            ['W6', '2025-02-03', '2025-02-09'],
+            ['W7', '2025-02-10', '2025-02-16'],
+            ['W8', '2025-02-17', '2025-02-23'],
+            ['W9', '2025-02-24', '2025-03-02'],
+            ['W10', '2025-03-03', '2025-03-09'],
+            ['W11', '2025-03-10', '2025-03-16'],
+            ['W12', '2025-03-17', '2025-03-23'],
+            ['W13', '2025-03-24', '2025-03-30'],
+            ['W14', '2025-03-31', '2025-04-06'],
+            ['W15', '2025-04-07', '2025-04-13'],
+            ['W16', '2025-04-14', '2025-04-20'],
+            ['W17', '2025-04-21', '2025-04-27'],
+            ['W18', '2025-04-28', '2025-05-04'],
+            ['W19', '2025-05-05', '2025-05-11'],
+            ['W20', '2025-05-12', '2025-05-18'],
+            ['W21', '2025-05-19', '2025-05-25'],
+            ['W22', '2025-05-26', '2025-06-01'],
+            ['W23', '2025-06-02', '2025-06-08'],
+            ['W24', '2025-06-09', '2025-06-15'],
+            ['W25', '2025-06-16', '2025-06-22'],
+            ['W26', '2025-06-23', '2025-06-29'],
+            ['W27', '2025-06-30', '2025-07-06'],
+            ['W28', '2025-07-07', '2025-07-13'],
+            ['W29', '2025-07-14', '2025-07-20'],
+            ['W30', '2025-07-21', '2025-07-27'],
+            ['W31', '2025-07-28', '2025-08-03'],
+            ['W32', '2025-08-04', '2025-08-10'],
+            ['W33', '2025-08-11', '2025-08-17'],
+            ['W34', '2025-08-18', '2025-08-24'],
+            ['W35', '2025-08-25', '2025-08-31'],
+            ['W36', '2025-09-01', '2025-09-07'],
+            ['W37', '2025-09-08', '2025-09-14'],
+            ['W38', '2025-09-15', '2025-09-21'],
+            ['W39', '2025-09-22', '2025-09-28'],
+            ['W40', '2025-09-29', '2025-10-05'],
+            ['W41', '2025-10-06', '2025-10-12'],
+            ['W42', '2025-10-13', '2025-10-19'],
+            ['W43', '2025-10-20', '2025-10-26'],
+            ['W44', '2025-10-27', '2025-11-02'],
+            ['W45', '2025-11-03', '2025-11-09'],
+            ['W46', '2025-11-10', '2025-11-16'],
+            ['W47', '2025-11-17', '2025-11-23'],
+            ['W48', '2025-11-24', '2025-11-30'],
+            ['W49', '2025-12-01', '2025-12-07'],
+            ['W50', '2025-12-08', '2025-12-14'],
+            ['W51', '2025-12-15', '2025-12-21'],
+            ['W52', '2025-12-22', '2025-12-28']
         ];
 
         foreach ($tempData as $entry) {
@@ -2261,8 +2259,12 @@ class User extends Controller
                 ];
                 $modelWeekProduksi->update($existingData['id_rpt'], $updatedData);
             } else {
+
+                $v_week = intval(substr($week, 1));
+
                 $dataWeekProduksi = [
                     'week' => $week,
+                    'v_week' => $v_week,
                     'year' => $year,
                     'line' => $entry->line,
                     'model' => $entry->model,
@@ -2343,61 +2345,61 @@ class User extends Controller
         ];
 
         $weeks = [
-            ['W1', '2024-01-01', '2024-01-07'],
-            ['W2', '2024-01-08', '2024-01-14'],
-            ['W3', '2024-01-15', '2024-01-21'],
-            ['W4', '2024-01-22', '2024-01-28'],
-            ['W5', '2024-01-29', '2024-02-04'],
-            ['W6', '2024-02-05', '2024-02-11'],
-            ['W7', '2024-02-12', '2024-02-18'],
-            ['W8', '2024-02-19', '2024-02-25'],
-            ['W9', '2024-02-26', '2024-03-03'],
-            ['W10', '2024-03-04', '2024-03-10'],
-            ['W11', '2024-03-11', '2024-03-17'],
-            ['W12', '2024-03-18', '2024-03-24'],
-            ['W13', '2024-03-25', '2024-03-31'],
-            ['W14', '2024-04-01', '2024-04-07'],
-            ['W15', '2024-04-08', '2024-04-14'],
-            ['W16', '2024-04-15', '2024-04-21'],
-            ['W17', '2024-04-22', '2024-04-28'],
-            ['W18', '2024-04-29', '2024-05-05'],
-            ['W19', '2024-05-06', '2024-05-12'],
-            ['W20', '2024-05-13', '2024-05-19'],
-            ['W21', '2024-05-20', '2024-05-26'],
-            ['W22', '2024-05-27', '2024-06-02'],
-            ['W23', '2024-06-03', '2024-06-09'],
-            ['W24', '2024-06-10', '2024-06-16'],
-            ['W25', '2024-06-17', '2024-06-23'],
-            ['W26', '2024-06-24', '2024-06-30'],
-            ['W27', '2024-07-01', '2024-07-07'],
-            ['W28', '2024-07-08', '2024-07-14'],
-            ['W29', '2024-07-15', '2024-07-21'],
-            ['W30', '2024-07-22', '2024-07-28'],
-            ['W31', '2024-07-29', '2024-08-04'],
-            ['W32', '2024-08-05', '2024-08-11'],
-            ['W33', '2024-08-12', '2024-08-18'],
-            ['W34', '2024-08-19', '2024-08-25'],
-            ['W35', '2024-08-26', '2024-09-01'],
-            ['W36', '2024-09-02', '2024-09-08'],
-            ['W37', '2024-09-09', '2024-09-15'],
-            ['W38', '2024-09-16', '2024-09-22'],
-            ['W39', '2024-09-23', '2024-09-29'],
-            ['W40', '2024-09-30', '2024-10-06'],
-            ['W41', '2024-10-07', '2024-10-13'],
-            ['W42', '2024-10-14', '2024-10-20'],
-            ['W43', '2024-10-21', '2024-10-27'],
-            ['W44', '2024-10-28', '2024-11-03'],
-            ['W45', '2024-11-04', '2024-11-10'],
-            ['W46', '2024-11-11', '2024-11-17'],
-            ['W47', '2024-11-18', '2024-11-24'],
-            ['W48', '2024-11-25', '2024-12-01'],
-            ['W49', '2024-12-02', '2024-12-08'],
-            ['W50', '2024-12-09', '2024-12-15'],
-            ['W51', '2024-12-16', '2024-12-22'],
-            ['W52', '2024-12-23', '2024-12-29']
+            ['W1', '2024-12-30', '2025-01-05'],
+            ['W2', '2025-01-06', '2025-01-12'],
+            ['W3', '2025-01-13', '2025-01-19'],
+            ['W4', '2025-01-20', '2025-01-26'],
+            ['W5', '2025-01-27', '2025-02-02'],
+            ['W6', '2025-02-03', '2025-02-09'],
+            ['W7', '2025-02-10', '2025-02-16'],
+            ['W8', '2025-02-17', '2025-02-23'],
+            ['W9', '2025-02-24', '2025-03-02'],
+            ['W10', '2025-03-03', '2025-03-09'],
+            ['W11', '2025-03-10', '2025-03-16'],
+            ['W12', '2025-03-17', '2025-03-23'],
+            ['W13', '2025-03-24', '2025-03-30'],
+            ['W14', '2025-03-31', '2025-04-06'],
+            ['W15', '2025-04-07', '2025-04-13'],
+            ['W16', '2025-04-14', '2025-04-20'],
+            ['W17', '2025-04-21', '2025-04-27'],
+            ['W18', '2025-04-28', '2025-05-04'],
+            ['W19', '2025-05-05', '2025-05-11'],
+            ['W20', '2025-05-12', '2025-05-18'],
+            ['W21', '2025-05-19', '2025-05-25'],
+            ['W22', '2025-05-26', '2025-06-01'],
+            ['W23', '2025-06-02', '2025-06-08'],
+            ['W24', '2025-06-09', '2025-06-15'],
+            ['W25', '2025-06-16', '2025-06-22'],
+            ['W26', '2025-06-23', '2025-06-29'],
+            ['W27', '2025-06-30', '2025-07-06'],
+            ['W28', '2025-07-07', '2025-07-13'],
+            ['W29', '2025-07-14', '2025-07-20'],
+            ['W30', '2025-07-21', '2025-07-27'],
+            ['W31', '2025-07-28', '2025-08-03'],
+            ['W32', '2025-08-04', '2025-08-10'],
+            ['W33', '2025-08-11', '2025-08-17'],
+            ['W34', '2025-08-18', '2025-08-24'],
+            ['W35', '2025-08-25', '2025-08-31'],
+            ['W36', '2025-09-01', '2025-09-07'],
+            ['W37', '2025-09-08', '2025-09-14'],
+            ['W38', '2025-09-15', '2025-09-21'],
+            ['W39', '2025-09-22', '2025-09-28'],
+            ['W40', '2025-09-29', '2025-10-05'],
+            ['W41', '2025-10-06', '2025-10-12'],
+            ['W42', '2025-10-13', '2025-10-19'],
+            ['W43', '2025-10-20', '2025-10-26'],
+            ['W44', '2025-10-27', '2025-11-02'],
+            ['W45', '2025-11-03', '2025-11-09'],
+            ['W46', '2025-11-10', '2025-11-16'],
+            ['W47', '2025-11-17', '2025-11-23'],
+            ['W48', '2025-11-24', '2025-11-30'],
+            ['W49', '2025-12-01', '2025-12-07'],
+            ['W50', '2025-12-08', '2025-12-14'],
+            ['W51', '2025-12-15', '2025-12-21'],
+            ['W52', '2025-12-22', '2025-12-28'],
+            ['W1', '2025-12-29', '2026-01-04'],
         ];
 
-        // Determine the week based on the date
         foreach ($weeks as $week) {
             $startDate = strtotime($week[1]);
             $endDate = strtotime($week[2]);
@@ -2449,9 +2451,11 @@ class User extends Controller
                 $insertedCount++;
             }
         } else {
-            // Insert new entry
+            $v_week = intval(substr($weekName, 1));
+
             $datamodelWeekSchedule = [
                 'week' => $weekName,
+                'v_week' => $v_week,
                 'year' => $year,
                 'line' => $line,
                 'reguler' => $reguler,
@@ -2508,89 +2512,94 @@ class User extends Controller
     }
 
     public function CalculateData()
-    {
-        $produksiModel = new Produksi();
-        $downtimeModel = new Downtime();
-        $scheduleModel = new Schedule();
-        $calculationModel = new Calculation();
-        
-        $requestData = $this->request->getJSON();
-        $tgl_bln_thn = $requestData->tgl_bln_thn;
-        $line = $requestData->line;
-        $shift = $requestData->shift;
-        
-        // Validasi input
-        if (!$this->validateParameters($tgl_bln_thn, $line, $shift)) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Parameter Kalkulasi Belum Terpenuhi.']);
-        }
+{
+    $produksiModel = new Produksi();
+    $downtimeModel = new Downtime();
+    $scheduleModel = new Schedule();
+    $calculationModel = new Calculation();
 
-        // Ambil data produksi
-        $productions = $produksiModel->where(['tgl_bln_thn' => $tgl_bln_thn, 'line' => $line, 'shift' => $shift])
-            ->select('SUM(actual_prod) AS total_actual_prod, SUM(plan_prod) AS total_plan_prod, SUM(cycle_time * actual_prod) AS total_cycle_time, SUM(cta) AS total_cta')
-            ->first();
+    $requestData = $this->request->getJSON();
+    $tgl_bln_thn = $requestData->tgl_bln_thn;
+    $line = $requestData->line;
+    $shift = $requestData->shift;
 
-        if (!$productions) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Data Produksi tidak ditemukan.']);
-        }
-
-        // Ambil data schedule
-        $schedule = $scheduleModel->where(['tgl_bln_thn' => $tgl_bln_thn, 'line' => $line, 'shift' => $shift])->first();
-        if (!$schedule) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Data Schedule tidak ditemukan.']);
-        }
-
-        $reguler = $schedule['reguler'];
-        $overtime = $schedule['overtime'];
-        $ro = $reguler + $overtime;
-
-        // Ambil data downtime
-        $downtimes = $downtimeModel->where(['tgl_bln_thn' => $tgl_bln_thn, 'line' => $line, 'shift' => $shift])
-            ->select('SUM(downtime) AS total_downtime, SUM(downtime) AS s_downtime')
-            ->first();
-
-        $total_downtime = $downtimes ? $downtimes['total_downtime'] : 0;
-        $total_downtime_hours = $total_downtime / 60;
-        $s_downtime = $downtimes ? $downtimes['s_downtime'] : 0;
-
-        $total_actual_prod = $productions['total_actual_prod'];
-        $total_plan_prod = $productions['total_plan_prod'];
-        $total_cta = $productions['total_cta'];
-
-        // Perhitungan OEE, BTS, dan Avail
-        $oee = ($total_cta != 0) ? $total_cta / ($ro * 3600) : 0;
-        $bts = ($total_plan_prod != 0) ? $total_actual_prod / $total_plan_prod : 0;
-        $avail = ($ro - $total_downtime_hours) / $ro;
-
-        // pengecekan data tabel daily_calculation
-        $existingCalculation = $calculationModel->where(['tgl_bln_thn' => $tgl_bln_thn, 'line' => $line, 'shift' => $shift])->first();
-        if ($existingCalculation) {
-            $calculationModel->update($existingCalculation['id_clc'], [
-                'oee' => number_format($oee, 6, '.', ''),
-                'bts' => number_format($bts, 6, '.', ''),
-                'avail' => number_format($avail, 6, '.', ''),
-                's_downtime' => $s_downtime
-            ]);
-        } else {
-            $calculationModel->insert([
-                'tgl_bln_thn' => $tgl_bln_thn,
-                'line' => $line,
-                'shift' => $shift,
-                'oee' => number_format($oee, 6, '.', ''),
-                'bts' => number_format($bts, 6, '.', ''),
-                'avail' => number_format($avail, 6, '.', ''),
-                's_downtime' => $s_downtime
-            ]);
-        }
-
-        // Perhitungan kalkulasi Weekly dan Monthly
-        $this->calculateAndSaveAverage($line, $tgl_bln_thn);
-        $this->CalculateDataWeek();
-        $this->CalculateDataMonth();
-
-        return $this->response->setJSON(['success' => true]);
+    // Validasi input
+    if (!$this->validateParameters($tgl_bln_thn, $line, $shift)) {
+        return $this->response->setJSON(['success' => false, 'message' => 'Parameter Kalkulasi Belum Terpenuhi.']);
     }
 
-    private function CalculateDataWeek()
+    // Ambil data produksi
+    $productions = $produksiModel->where(['tgl_bln_thn' => $tgl_bln_thn, 'line' => $line, 'shift' => $shift])
+        ->select('SUM(actual_prod) AS total_actual_prod, SUM(plan_prod) AS total_plan_prod, SUM(cycle_time * actual_prod) AS total_cycle_time, SUM(cta) AS total_cta')
+        ->first();
+
+    if (!$productions) {
+        return $this->response->setJSON(['success' => false, 'message' => 'Data Produksi tidak ditemukan.']);
+    }
+
+    // Ambil data schedule
+    $schedule = $scheduleModel->where(['tgl_bln_thn' => $tgl_bln_thn, 'line' => $line, 'shift' => $shift])->first();
+    if (!$schedule) {
+        return $this->response->setJSON(['success' => false, 'message' => 'Data Schedule tidak ditemukan.']);
+    }
+
+    $reguler = $schedule['reguler'];
+    $overtime = $schedule['overtime'];
+    $ro = $reguler + $overtime;
+
+    // Ambil data downtime
+    $downtimes = $downtimeModel->where(['tgl_bln_thn' => $tgl_bln_thn, 'line' => $line, 'shift' => $shift])
+        ->select('SUM(downtime) AS total_downtime, SUM(downtime) AS s_downtime')
+        ->first();
+
+    $total_downtime = $downtimes ? $downtimes['total_downtime'] : 0;
+    $total_downtime_hours = $total_downtime / 60;
+    $s_downtime = $downtimes ? $downtimes['s_downtime'] : 0;
+
+    $total_actual_prod = $productions['total_actual_prod'];
+    $total_plan_prod = $productions['total_plan_prod'];
+    $total_cta = $productions['total_cta'];
+
+    // Perhitungan OEE, BTS, dan Avail
+    $oee = ($total_cta != 0) ? $total_cta / ($ro * 3600) : 0;
+    $bts = ($total_plan_prod != 0) ? $total_actual_prod / $total_plan_prod : 0;
+    $avail = ($ro - $total_downtime_hours) / $ro;
+
+    // Simpan data ke daily_calculation
+    $existingCalculation = $calculationModel->where(['tgl_bln_thn' => $tgl_bln_thn, 'line' => $line, 'shift' => $shift])->first();
+    if ($existingCalculation) {
+        $calculationModel->update($existingCalculation['id_clc'], [
+            'oee' => number_format($oee, 6, '.', ''),
+            'bts' => number_format($bts, 6, '.', ''),
+            'avail' => number_format($avail, 6, '.', ''),
+            's_downtime' => $s_downtime
+        ]);
+    } else {
+        $calculationModel->insert([
+            'tgl_bln_thn' => $tgl_bln_thn,
+            'line' => $line,
+            'shift' => $shift,
+            'oee' => number_format($oee, 6, '.', ''),
+            'bts' => number_format($bts, 6, '.', ''),
+            'avail' => number_format($avail, 6, '.', ''),
+            's_downtime' => $s_downtime
+        ]);
+    }
+
+    // Kalkulasi Weekly dan Monthly
+    $weekResult = $this->CalculateDataWeek($tgl_bln_thn, $line, $shift);
+    $monthResult = $this->CalculateDataMonth($tgl_bln_thn, $line, $shift);
+
+    if (!$weekResult['success'] || !$monthResult['success']) {
+        log_message('error', 'Error in Weekly or Monthly Calculation: ' . json_encode([$weekResult, $monthResult]));
+        return $this->response->setJSON(['success' => false, 'message' => 'Kalkulasi Weekly atau Monthly gagal.']);
+    }
+
+    return $this->response->setJSON(['success' => true, 'message' => 'Kalkulasi berhasil.']);
+}
+
+
+    private function CalculateDataWeek($tgl_bln_thn, $line, $shift)
     {
         $produksiWeekModel = new ProduksiWeek();
         $downtimeWeekModel = new DowntimeWeek();
@@ -2605,8 +2614,6 @@ class User extends Controller
         if (!$this->validateParameters($tgl_bln_thn, $line, $shift)) {
             return $this->response->setJSON(['success' => false, 'message' => 'Parameter Kalkulasi Belum Terpenuhi.']);
         }
-
-        
 
         $date = new \DateTime($tgl_bln_thn);
         $week = 'W' . $date->format('W');
@@ -2697,9 +2704,9 @@ class User extends Controller
         $year = $date->format('Y');
 
         $months = [
-            '01' => 'Januari', '02' => 'Februari', '03' => 'Maret', '04' => 'April',
-            '05' => 'Mei', '06' => 'Juni', '07' => 'Juli', '08' => 'Agustus',
-            '09' => 'September', '10' => 'Oktober', '11' => 'November', '12' => 'Desember'
+            '01' => 'January', '02' => 'February', '03' => 'March', '04' => 'April',
+            '05' => 'May', '06' => 'June', '07' => 'July', '08' => 'August',
+            '09' => 'September', '10' => 'October', '11' => 'November', '12' => 'December'
         ];
 
         $monthName = $months[$monthNumber];
