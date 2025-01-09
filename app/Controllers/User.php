@@ -33,6 +33,8 @@ use CodeIgniter\DateTime;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Yajra\DataTables\DataTables;
+use Carbon\Carbon;
+use Carbon\CarbonPeriod;
 
 class User extends Controller
 {
@@ -1516,79 +1518,48 @@ class User extends Controller
 
     public function submitScrapControlFA_ds() {
         $tempData = $this->request->getJSON();
-    
+        
         if (!is_array($tempData)) {
             return $this->response->setJSON(['success' => false, 'message' => 'Format Data Salah']);
         }
-    
+        
         $modelDowntime = new Downtime();
         $modelWeekDowntime = new DowntimeWeek();
         $modelMonthDowntime = new DowntimeMonth();
         $insertedCount = 0;
-
-        $monthsIndo = [
-            '01' => 'Januari', '02' => 'Februari', '03' => 'Maret', '04' => 'April', '05' => 'Mei',
-            '06' => 'Juni', '07' => 'Juli', '08' => 'Agustus', '09' => 'September', '10' => 'Oktober', 
-            '11' => 'November', '12' => 'Desember'
-        ];
     
-        $weeks = [
-            ['W1', '2024-12-30', '2025-01-05'],
-            ['W2', '2025-01-06', '2025-01-12'],
-            ['W3', '2025-01-13', '2025-01-19'],
-            ['W4', '2025-01-20', '2025-01-26'],
-            ['W5', '2025-01-27', '2025-02-02'],
-            ['W6', '2025-02-03', '2025-02-09'],
-            ['W7', '2025-02-10', '2025-02-16'],
-            ['W8', '2025-02-17', '2025-02-23'],
-            ['W9', '2025-02-24', '2025-03-02'],
-            ['W10', '2025-03-03', '2025-03-09'],
-            ['W11', '2025-03-10', '2025-03-16'],
-            ['W12', '2025-03-17', '2025-03-23'],
-            ['W13', '2025-03-24', '2025-03-30'],
-            ['W14', '2025-03-31', '2025-04-06'],
-            ['W15', '2025-04-07', '2025-04-13'],
-            ['W16', '2025-04-14', '2025-04-20'],
-            ['W17', '2025-04-21', '2025-04-27'],
-            ['W18', '2025-04-28', '2025-05-04'],
-            ['W19', '2025-05-05', '2025-05-11'],
-            ['W20', '2025-05-12', '2025-05-18'],
-            ['W21', '2025-05-19', '2025-05-25'],
-            ['W22', '2025-05-26', '2025-06-01'],
-            ['W23', '2025-06-02', '2025-06-08'],
-            ['W24', '2025-06-09', '2025-06-15'],
-            ['W25', '2025-06-16', '2025-06-22'],
-            ['W26', '2025-06-23', '2025-06-29'],
-            ['W27', '2025-06-30', '2025-07-06'],
-            ['W28', '2025-07-07', '2025-07-13'],
-            ['W29', '2025-07-14', '2025-07-20'],
-            ['W30', '2025-07-21', '2025-07-27'],
-            ['W31', '2025-07-28', '2025-08-03'],
-            ['W32', '2025-08-04', '2025-08-10'],
-            ['W33', '2025-08-11', '2025-08-17'],
-            ['W34', '2025-08-18', '2025-08-24'],
-            ['W35', '2025-08-25', '2025-08-31'],
-            ['W36', '2025-09-01', '2025-09-07'],
-            ['W37', '2025-09-08', '2025-09-14'],
-            ['W38', '2025-09-15', '2025-09-21'],
-            ['W39', '2025-09-22', '2025-09-28'],
-            ['W40', '2025-09-29', '2025-10-05'],
-            ['W41', '2025-10-06', '2025-10-12'],
-            ['W42', '2025-10-13', '2025-10-19'],
-            ['W43', '2025-10-20', '2025-10-26'],
-            ['W44', '2025-10-27', '2025-11-02'],
-            ['W45', '2025-11-03', '2025-11-09'],
-            ['W46', '2025-11-10', '2025-11-16'],
-            ['W47', '2025-11-17', '2025-11-23'],
-            ['W48', '2025-11-24', '2025-11-30'],
-            ['W49', '2025-12-01', '2025-12-07'],
-            ['W50', '2025-12-08', '2025-12-14'],
-            ['W51', '2025-12-15', '2025-12-21'],
-            ['W52', '2025-12-22', '2025-12-28']
+        $monthsIndo = [
+            '01' => 'January', '02' => 'February', '03' => 'March', '04' => 'April',
+            '05' => 'May', '06' => 'June', '07' => 'July', '08' => 'August',
+            '09' => 'September', '10' => 'October', '11' => 'November', '12' => 'December'
         ];
+        
+        function generateWeeks($year) {
+            $startOfYear = strtotime("last Monday of December " . ($year - 1)); 
+            $weeks = [];
+            $weekNumber = 1;
+        
+            while (date('Y', $startOfYear) <= $year) {
+                $weekStart = date('Y-m-d', $startOfYear);
+                $weekEnd = date('Y-m-d', strtotime("+6 days", $startOfYear));
+                
+                $weeks[] = [
+                    sprintf("W%02d", $weekNumber),
+                    $weekStart,
+                    $weekEnd
+                ];
+                
+                $startOfYear = strtotime("+1 week", $startOfYear);
+                $weekNumber++;
+            }
+        
+            return $weeks;
+        }    
+
+        $years = date('Y'); 
+        $weeks = generateWeeks($years);
     
         foreach ($tempData as $entry) {
-    
             $dataDowntime = [
                 'tgl_bln_thn' => $entry->date,
                 'shift' => $entry->shift,
@@ -1625,8 +1596,8 @@ class User extends Controller
                 ];
                 $modelWeekDowntime->update($existingData['id_dtm'], $updatedData);
             } else {
-                $v_week = intval(substr($week,1));
-
+                $v_week = intval(substr($week, 1));
+    
                 $dataWeekDowntime = [
                     'week' => $week,
                     'v_week' => $v_week,
@@ -1638,7 +1609,7 @@ class User extends Controller
                 $modelWeekDowntime->insert($dataWeekDowntime);
                 $insertedCount++;
             }
-
+    
             // Insert or update data in ProduksiMonth table
             $existingMonthData = $modelMonthDowntime->where([
                 'month' => $monthName,
@@ -1646,7 +1617,7 @@ class User extends Controller
                 'line' => $entry->line,
                 'station' => $entry->station,
             ])->first();
-
+    
             if ($existingMonthData) {
                 $updatedMonthData = [
                     'downtime' => $existingData['downtime'] + $entry->downtime,
@@ -2152,65 +2123,36 @@ class User extends Controller
         $insertedCount = 0;
 
         $monthsIndo = [
-            '01' => 'Januari', '02' => 'Februari', '03' => 'Maret', '04' => 'April', '05' => 'Mei',
-            '06' => 'Juni', '07' => 'Juli', '08' => 'Agustus', '09' => 'September', '10' => 'Oktober', 
-            '11' => 'November', '12' => 'Desember'
+            '01' => 'January', '02' => 'February', '03' => 'March', '04' => 'April',
+            '05' => 'May', '06' => 'June', '07' => 'July', '08' => 'August',
+            '09' => 'September', '10' => 'October', '11' => 'November', '12' => 'December'
         ];
 
-        $weeks = [
-            ['W1', '2024-12-30', '2025-01-05'],
-            ['W2', '2025-01-06', '2025-01-12'],
-            ['W3', '2025-01-13', '2025-01-19'],
-            ['W4', '2025-01-20', '2025-01-26'],
-            ['W5', '2025-01-27', '2025-02-02'],
-            ['W6', '2025-02-03', '2025-02-09'],
-            ['W7', '2025-02-10', '2025-02-16'],
-            ['W8', '2025-02-17', '2025-02-23'],
-            ['W9', '2025-02-24', '2025-03-02'],
-            ['W10', '2025-03-03', '2025-03-09'],
-            ['W11', '2025-03-10', '2025-03-16'],
-            ['W12', '2025-03-17', '2025-03-23'],
-            ['W13', '2025-03-24', '2025-03-30'],
-            ['W14', '2025-03-31', '2025-04-06'],
-            ['W15', '2025-04-07', '2025-04-13'],
-            ['W16', '2025-04-14', '2025-04-20'],
-            ['W17', '2025-04-21', '2025-04-27'],
-            ['W18', '2025-04-28', '2025-05-04'],
-            ['W19', '2025-05-05', '2025-05-11'],
-            ['W20', '2025-05-12', '2025-05-18'],
-            ['W21', '2025-05-19', '2025-05-25'],
-            ['W22', '2025-05-26', '2025-06-01'],
-            ['W23', '2025-06-02', '2025-06-08'],
-            ['W24', '2025-06-09', '2025-06-15'],
-            ['W25', '2025-06-16', '2025-06-22'],
-            ['W26', '2025-06-23', '2025-06-29'],
-            ['W27', '2025-06-30', '2025-07-06'],
-            ['W28', '2025-07-07', '2025-07-13'],
-            ['W29', '2025-07-14', '2025-07-20'],
-            ['W30', '2025-07-21', '2025-07-27'],
-            ['W31', '2025-07-28', '2025-08-03'],
-            ['W32', '2025-08-04', '2025-08-10'],
-            ['W33', '2025-08-11', '2025-08-17'],
-            ['W34', '2025-08-18', '2025-08-24'],
-            ['W35', '2025-08-25', '2025-08-31'],
-            ['W36', '2025-09-01', '2025-09-07'],
-            ['W37', '2025-09-08', '2025-09-14'],
-            ['W38', '2025-09-15', '2025-09-21'],
-            ['W39', '2025-09-22', '2025-09-28'],
-            ['W40', '2025-09-29', '2025-10-05'],
-            ['W41', '2025-10-06', '2025-10-12'],
-            ['W42', '2025-10-13', '2025-10-19'],
-            ['W43', '2025-10-20', '2025-10-26'],
-            ['W44', '2025-10-27', '2025-11-02'],
-            ['W45', '2025-11-03', '2025-11-09'],
-            ['W46', '2025-11-10', '2025-11-16'],
-            ['W47', '2025-11-17', '2025-11-23'],
-            ['W48', '2025-11-24', '2025-11-30'],
-            ['W49', '2025-12-01', '2025-12-07'],
-            ['W50', '2025-12-08', '2025-12-14'],
-            ['W51', '2025-12-15', '2025-12-21'],
-            ['W52', '2025-12-22', '2025-12-28']
-        ];
+        function generateWeeks($year) {
+            $startOfYear = strtotime("last Monday of December " . ($year - 1)); 
+            $weeks = [];
+            $weekNumber = 1;
+        
+            while (date('Y', $startOfYear) <= $year) {
+                $weekStart = date('Y-m-d', $startOfYear);
+                $weekEnd = date('Y-m-d', strtotime("+6 days", $startOfYear));
+                
+                $weeks[] = [
+                    sprintf("W%02d", $weekNumber),
+                    $weekStart,
+                    $weekEnd
+                ];
+                
+                $startOfYear = strtotime("+1 week", $startOfYear);
+                $weekNumber++;
+            }
+        
+            return $weeks;
+        }    
+
+        $years = date('Y'); 
+        $weeks = generateWeeks($years);
+
 
         foreach ($tempData as $entry) {
             $actualProd = $entry->actual_prod;
@@ -2316,8 +2258,6 @@ class User extends Controller
         }
     }
 
-    
-
     public function submitReportsch()
     {
         // Access form data using getPost
@@ -2339,66 +2279,35 @@ class User extends Controller
         $insertedCount = 0;
 
         $monthsIndo = [
-            '01' => 'Januari', '02' => 'Februari', '03' => 'Maret', '04' => 'April', '05' => 'Mei',
-            '06' => 'Juni', '07' => 'Juli', '08' => 'Agustus', '09' => 'September', '10' => 'Oktober', 
-            '11' => 'November', '12' => 'Desember'
+            '01' => 'January', '02' => 'February', '03' => 'March', '04' => 'April',
+            '05' => 'May', '06' => 'June', '07' => 'July', '08' => 'August',
+            '09' => 'September', '10' => 'October', '11' => 'November', '12' => 'December'
         ];
 
-        $weeks = [
-            ['W1', '2024-12-30', '2025-01-05'],
-            ['W2', '2025-01-06', '2025-01-12'],
-            ['W3', '2025-01-13', '2025-01-19'],
-            ['W4', '2025-01-20', '2025-01-26'],
-            ['W5', '2025-01-27', '2025-02-02'],
-            ['W6', '2025-02-03', '2025-02-09'],
-            ['W7', '2025-02-10', '2025-02-16'],
-            ['W8', '2025-02-17', '2025-02-23'],
-            ['W9', '2025-02-24', '2025-03-02'],
-            ['W10', '2025-03-03', '2025-03-09'],
-            ['W11', '2025-03-10', '2025-03-16'],
-            ['W12', '2025-03-17', '2025-03-23'],
-            ['W13', '2025-03-24', '2025-03-30'],
-            ['W14', '2025-03-31', '2025-04-06'],
-            ['W15', '2025-04-07', '2025-04-13'],
-            ['W16', '2025-04-14', '2025-04-20'],
-            ['W17', '2025-04-21', '2025-04-27'],
-            ['W18', '2025-04-28', '2025-05-04'],
-            ['W19', '2025-05-05', '2025-05-11'],
-            ['W20', '2025-05-12', '2025-05-18'],
-            ['W21', '2025-05-19', '2025-05-25'],
-            ['W22', '2025-05-26', '2025-06-01'],
-            ['W23', '2025-06-02', '2025-06-08'],
-            ['W24', '2025-06-09', '2025-06-15'],
-            ['W25', '2025-06-16', '2025-06-22'],
-            ['W26', '2025-06-23', '2025-06-29'],
-            ['W27', '2025-06-30', '2025-07-06'],
-            ['W28', '2025-07-07', '2025-07-13'],
-            ['W29', '2025-07-14', '2025-07-20'],
-            ['W30', '2025-07-21', '2025-07-27'],
-            ['W31', '2025-07-28', '2025-08-03'],
-            ['W32', '2025-08-04', '2025-08-10'],
-            ['W33', '2025-08-11', '2025-08-17'],
-            ['W34', '2025-08-18', '2025-08-24'],
-            ['W35', '2025-08-25', '2025-08-31'],
-            ['W36', '2025-09-01', '2025-09-07'],
-            ['W37', '2025-09-08', '2025-09-14'],
-            ['W38', '2025-09-15', '2025-09-21'],
-            ['W39', '2025-09-22', '2025-09-28'],
-            ['W40', '2025-09-29', '2025-10-05'],
-            ['W41', '2025-10-06', '2025-10-12'],
-            ['W42', '2025-10-13', '2025-10-19'],
-            ['W43', '2025-10-20', '2025-10-26'],
-            ['W44', '2025-10-27', '2025-11-02'],
-            ['W45', '2025-11-03', '2025-11-09'],
-            ['W46', '2025-11-10', '2025-11-16'],
-            ['W47', '2025-11-17', '2025-11-23'],
-            ['W48', '2025-11-24', '2025-11-30'],
-            ['W49', '2025-12-01', '2025-12-07'],
-            ['W50', '2025-12-08', '2025-12-14'],
-            ['W51', '2025-12-15', '2025-12-21'],
-            ['W52', '2025-12-22', '2025-12-28'],
-            ['W1', '2025-12-29', '2026-01-04'],
-        ];
+        function generateWeeks($year) {
+            $startOfYear = strtotime("last Monday of December " . ($year - 1)); 
+            $weeks = [];
+            $weekNumber = 1;
+        
+            while (date('Y', $startOfYear) <= $year) {
+                $weekStart = date('Y-m-d', $startOfYear);
+                $weekEnd = date('Y-m-d', strtotime("+6 days", $startOfYear));
+                
+                $weeks[] = [
+                    sprintf("W%02d", $weekNumber),
+                    $weekStart,
+                    $weekEnd
+                ];
+                
+                $startOfYear = strtotime("+1 week", $startOfYear);
+                $weekNumber++;
+            }
+        
+            return $weeks;
+        }    
+
+        $years = date('Y'); 
+        $weeks = generateWeeks($years);
 
         foreach ($weeks as $week) {
             $startDate = strtotime($week[1]);
@@ -2587,13 +2496,8 @@ class User extends Controller
     }
 
     // Kalkulasi Weekly dan Monthly
-    $weekResult = $this->CalculateDataWeek($tgl_bln_thn, $line, $shift);
-    $monthResult = $this->CalculateDataMonth($tgl_bln_thn, $line, $shift);
-
-    if (!$weekResult['success'] || !$monthResult['success']) {
-        log_message('error', 'Error in Weekly or Monthly Calculation: ' . json_encode([$weekResult, $monthResult]));
-        return $this->response->setJSON(['success' => false, 'message' => 'Kalkulasi Weekly atau Monthly gagal.']);
-    }
+    $this->CalculateDataWeek($tgl_bln_thn, $line, $shift);
+    $this->CalculateDataMonth($tgl_bln_thn, $line, $shift);
 
     return $this->response->setJSON(['success' => true, 'message' => 'Kalkulasi berhasil.']);
 }
@@ -2605,11 +2509,6 @@ class User extends Controller
         $downtimeWeekModel = new DowntimeWeek();
         $scheduleWeekModel = new ScheduleWeek();
         $calculationWeekModel = new CalculationWeek();
-
-        $requestData = $this->request->getJSON();
-        $tgl_bln_thn = $requestData->tgl_bln_thn;
-        $line = $requestData->line;
-        $shift = $requestData->shift;
 
         if (!$this->validateParameters($tgl_bln_thn, $line, $shift)) {
             return $this->response->setJSON(['success' => false, 'message' => 'Parameter Kalkulasi Belum Terpenuhi.']);
@@ -2661,12 +2560,15 @@ class User extends Controller
             'line' => $line
         ])->first();
 
+        $v_week = intval(substr($week, -1));
+
         if ($existingCalculation) {
             $calculationWeekModel->update($existingCalculation['id_clc'], [
                 'oee' => number_format($oee, 6, '.', ''),
                 'bts' => number_format($bts, 6, '.', ''),
                 'avail' => number_format($avail, 6, '.', ''),
                 's_downtime' => $s_downtime,
+                'v_week' => $v_week,
             ]);
         } else {
             $calculationWeekModel->insert([
@@ -2677,23 +2579,19 @@ class User extends Controller
                 'bts' => number_format($bts, 6, '.', ''),
                 'avail' => number_format($avail, 6, '.', ''),
                 's_downtime' => $s_downtime,
+                'v_week' => $v_week,
             ]);
         }
 
         return $this->response->setJSON(['success' => true]);
     }
 
-    private function CalculateDataMonth()
+    private function CalculateDataMonth($tgl_bln_thn, $line, $shift)
     {
         $produksiMonthModel = new ProduksiMonth();
         $downtimeMonthModel = new DowntimeMonth();
         $scheduleMonthModel = new ScheduleMonth();
         $calculationMonthModel = new CalculationMonth();
-
-        $requestData = $this->request->getJSON();
-        $tgl_bln_thn = $requestData->tgl_bln_thn;
-        $line = $requestData->line;
-        $shift = $requestData->shift;
 
         if (!$this->validateParameters($tgl_bln_thn, $line, $shift)) {
             return $this->response->setJSON(['success' => false, 'message' => 'Parameter Kalkulasi Belum Terpenuhi.']);
@@ -2874,9 +2772,6 @@ class User extends Controller
         // Kembalikan true jika semua data ada
         return $productionExists && $scheduleExists && $downtimeExists;
     }
-   
-
-    
 
 
 }
