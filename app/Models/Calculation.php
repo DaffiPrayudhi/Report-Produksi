@@ -13,7 +13,7 @@ class Calculation extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['tgl_bln_thn','line','shift','oee','bts','avail','s_downtime'];
+    protected $allowedFields    = ['tgl_bln_thn','line','shift','oee','bts','avail','s_downtime','model'];
 
     protected bool $allowEmptyInserts = false;
     protected bool $updateOnlyChanged = true;

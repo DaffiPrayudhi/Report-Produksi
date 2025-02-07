@@ -2421,88 +2421,104 @@ class User extends Controller
     }
 
     public function CalculateData()
-{
-    $produksiModel = new Produksi();
-    $downtimeModel = new Downtime();
-    $scheduleModel = new Schedule();
-    $calculationModel = new Calculation();
-
-    $requestData = $this->request->getJSON();
-    $tgl_bln_thn = $requestData->tgl_bln_thn;
-    $line = $requestData->line;
-    $shift = $requestData->shift;
-
-    // Validasi input
-    if (!$this->validateParameters($tgl_bln_thn, $line, $shift)) {
-        return $this->response->setJSON(['success' => false, 'message' => 'Parameter Kalkulasi Belum Terpenuhi.']);
+    {
+        $produksiModel = new Produksi();
+        $downtimeModel = new Downtime();
+        $scheduleModel = new Schedule();
+        $calculationModel = new Calculation();
+    
+        $requestData = $this->request->getJSON();
+        $tgl_bln_thn = $requestData->tgl_bln_thn;
+        $line = $requestData->line;
+        $shift = $requestData->shift;
+    
+        if (!$this->validateParameters($tgl_bln_thn, $line, $shift)) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Parameter Kalkulasi Belum Terpenuhi.']);
+        }
+    
+        // Ambil data produksi
+        $productions = $produksiModel->where(['tgl_bln_thn' => $tgl_bln_thn, 'line' => $line, 'shift' => $shift])
+            ->select('SUM(actual_prod) AS total_actual_prod, 
+                      SUM(plan_prod) AS total_plan_prod, 
+                      SUM(cycle_time * actual_prod) AS total_cycle_time, 
+                      SUM(cta) AS total_cta, 
+                      STRING_AGG(model, \',\') AS models')
+            ->first();
+    
+        if (!$productions) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Data Produksi tidak ditemukan.']);
+        }
+    
+        // Ambil data schedule
+        $schedule = $scheduleModel->where(['tgl_bln_thn' => $tgl_bln_thn, 'line' => $line, 'shift' => $shift])->first();
+        if (!$schedule) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Data Schedule tidak ditemukan.']);
+        }
+    
+        $reguler = $schedule['reguler'];
+        $overtime = $schedule['overtime'];
+        $ro = $reguler + $overtime;
+    
+        // Ambil data downtime
+        $downtimes = $downtimeModel->where(['tgl_bln_thn' => $tgl_bln_thn, 'line' => $line, 'shift' => $shift])
+            ->select('SUM(downtime) AS total_downtime, SUM(downtime) AS s_downtime')
+            ->first();
+    
+        $total_downtime = $downtimes ? $downtimes['total_downtime'] : 0;
+        $total_downtime_hours = $total_downtime / 60;
+        $s_downtime = $downtimes ? $downtimes['s_downtime'] : 0;
+    
+        $total_actual_prod = $productions['total_actual_prod'];
+        $total_plan_prod = $productions['total_plan_prod'];
+        $total_cta = $productions['total_cta'];
+        
+        $modelsArray = array_unique(array_filter(array_map('trim', explode(',', $productions['models']))));
+    
+        if (empty($modelsArray)) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Model tidak ditemukan.']);
+        }
+    
+        $models = implode(',', $modelsArray);
+    
+        // Perhitungan OEE, BTS, dan Avail
+        $oee = ($total_cta != 0) ? $total_cta / ($ro * 3600) : 0;
+        $bts = ($total_plan_prod != 0) ? $total_actual_prod / $total_plan_prod : 0;
+        $avail = ($ro != 0) ? max(0, ($ro - $total_downtime_hours) / $ro) : 0;
+    
+        $existingCalculation = $calculationModel->where(['tgl_bln_thn' => $tgl_bln_thn, 'line' => $line, 'shift' => $shift])->first();
+        if ($existingCalculation) {
+            $existingModels = explode(',', $existingCalculation['model']);
+            $newModels = array_unique(array_merge($existingModels, $modelsArray));
+            sort($newModels);
+            $updatedModels = implode(',', $newModels);
+    
+            $calculationModel->update($existingCalculation['id_clc'], [
+                'model' => $updatedModels,
+                'oee' => number_format($oee, 6, '.', ''),
+                'bts' => number_format($bts, 6, '.', ''),
+                'avail' => number_format($avail, 6, '.', ''),
+                's_downtime' => $s_downtime
+            ]);
+        } else {
+            $calculationModel->insert([
+                'tgl_bln_thn' => $tgl_bln_thn,
+                'line' => $line,
+                'shift' => $shift,
+                'model' => $models,
+                'oee' => number_format($oee, 6, '.', ''),
+                'bts' => number_format($bts, 6, '.', ''),
+                'avail' => number_format($avail, 6, '.', ''),
+                's_downtime' => $s_downtime
+            ]);
+        }
+    
+        // Kalkulasi Weekly dan Monthly
+        $this->CalculateDataWeek($tgl_bln_thn, $line, $shift);
+        $this->CalculateDataMonth($tgl_bln_thn, $line, $shift);
+    
+        return $this->response->setJSON(['success' => true, 'message' => 'Kalkulasi berhasil.']);
     }
-
-    // Ambil data produksi
-    $productions = $produksiModel->where(['tgl_bln_thn' => $tgl_bln_thn, 'line' => $line, 'shift' => $shift])
-        ->select('SUM(actual_prod) AS total_actual_prod, SUM(plan_prod) AS total_plan_prod, SUM(cycle_time * actual_prod) AS total_cycle_time, SUM(cta) AS total_cta')
-        ->first();
-
-    if (!$productions) {
-        return $this->response->setJSON(['success' => false, 'message' => 'Data Produksi tidak ditemukan.']);
-    }
-
-    // Ambil data schedule
-    $schedule = $scheduleModel->where(['tgl_bln_thn' => $tgl_bln_thn, 'line' => $line, 'shift' => $shift])->first();
-    if (!$schedule) {
-        return $this->response->setJSON(['success' => false, 'message' => 'Data Schedule tidak ditemukan.']);
-    }
-
-    $reguler = $schedule['reguler'];
-    $overtime = $schedule['overtime'];
-    $ro = $reguler + $overtime;
-
-    // Ambil data downtime
-    $downtimes = $downtimeModel->where(['tgl_bln_thn' => $tgl_bln_thn, 'line' => $line, 'shift' => $shift])
-        ->select('SUM(downtime) AS total_downtime, SUM(downtime) AS s_downtime')
-        ->first();
-
-    $total_downtime = $downtimes ? $downtimes['total_downtime'] : 0;
-    $total_downtime_hours = $total_downtime / 60;
-    $s_downtime = $downtimes ? $downtimes['s_downtime'] : 0;
-
-    $total_actual_prod = $productions['total_actual_prod'];
-    $total_plan_prod = $productions['total_plan_prod'];
-    $total_cta = $productions['total_cta'];
-
-    // Perhitungan OEE, BTS, dan Avail
-    $oee = ($total_cta != 0) ? $total_cta / ($ro * 3600) : 0;
-    $bts = ($total_plan_prod != 0) ? $total_actual_prod / $total_plan_prod : 0;
-    $avail = ($ro - $total_downtime_hours) / $ro;
-
-    // Simpan data ke daily_calculation
-    $existingCalculation = $calculationModel->where(['tgl_bln_thn' => $tgl_bln_thn, 'line' => $line, 'shift' => $shift])->first();
-    if ($existingCalculation) {
-        $calculationModel->update($existingCalculation['id_clc'], [
-            'oee' => number_format($oee, 6, '.', ''),
-            'bts' => number_format($bts, 6, '.', ''),
-            'avail' => number_format($avail, 6, '.', ''),
-            's_downtime' => $s_downtime
-        ]);
-    } else {
-        $calculationModel->insert([
-            'tgl_bln_thn' => $tgl_bln_thn,
-            'line' => $line,
-            'shift' => $shift,
-            'oee' => number_format($oee, 6, '.', ''),
-            'bts' => number_format($bts, 6, '.', ''),
-            'avail' => number_format($avail, 6, '.', ''),
-            's_downtime' => $s_downtime
-        ]);
-    }
-
-    // Kalkulasi Weekly dan Monthly
-    $this->CalculateDataWeek($tgl_bln_thn, $line, $shift);
-    $this->CalculateDataMonth($tgl_bln_thn, $line, $shift);
-
-    return $this->response->setJSON(['success' => true, 'message' => 'Kalkulasi berhasil.']);
-}
-
-
+    
     private function CalculateDataWeek($tgl_bln_thn, $line, $shift)
     {
         $produksiWeekModel = new ProduksiWeek();
@@ -2551,7 +2567,7 @@ class User extends Controller
         // Calculate OEE, BTS, and Avail
         $oee = ($total_cta != 0) ? $total_cta / ($ro * 3600) : 0;
         $bts = ($total_plan_prod != 0) ? $total_actual_prod / $total_plan_prod : 0;
-        $avail = ($ro - $total_downtime_hours) / $ro;
+        $avail = ($ro != 0) ? max(0, ($ro - $total_downtime_hours) / $ro) : 0;
 
         // Save or update the calculation data
         $existingCalculation = $calculationWeekModel->where([
@@ -2647,7 +2663,7 @@ class User extends Controller
         // Calculate OEE, BTS, and Avail
         $oee = ($total_cta != 0) ? $total_cta / ($ro * 3600) : 0;
         $bts = ($total_plan_prod != 0) ? $total_actual_prod / $total_plan_prod : 0;
-        $avail = ($ro - $total_downtime_hours) / $ro;
+        $avail = ($ro != 0) ? max(0, ($ro - $total_downtime_hours) / $ro) : 0;
 
         $existingCalculation = $calculationMonthModel->where([
             'month' => $monthName,

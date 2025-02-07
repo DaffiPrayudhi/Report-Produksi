@@ -104,6 +104,8 @@ Calculation Input
                     title: 'Success',
                     text: 'Berhasil mengkalkulasi data!',
                     confirmButtonText: 'OK'
+                }).then(() => {
+                    window.location.href = "<?= site_url('admnscrap/approval_table') ?>"; 
                 });
             } else {
                 Swal.fire({
