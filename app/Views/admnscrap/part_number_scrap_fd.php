@@ -104,6 +104,8 @@ Calculation Input
                     title: 'Success',
                     text: 'Berhasil mengkalkulasi data!',
                     confirmButtonText: 'OK'
+                }).then(() => {
+                    window.location.href = "<?= site_url('admnscrap/approval_table') ?>"; 
                 });
             } else {
                 Swal.fire({
@@ -115,6 +117,8 @@ Calculation Input
             }
         })
         .catch(error => console.error('Error:', error));
+        console.log('Sending data:', { tgl_bln_thn, shift, line });
+
     }
 </script>
 

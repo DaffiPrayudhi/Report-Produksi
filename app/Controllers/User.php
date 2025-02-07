@@ -33,6 +33,8 @@ use CodeIgniter\DateTime;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Yajra\DataTables\DataTables;
+use Carbon\Carbon;
+use Carbon\CarbonPeriod;
 
 class User extends Controller
 {
@@ -1516,79 +1518,48 @@ class User extends Controller
 
     public function submitScrapControlFA_ds() {
         $tempData = $this->request->getJSON();
-    
+        
         if (!is_array($tempData)) {
             return $this->response->setJSON(['success' => false, 'message' => 'Format Data Salah']);
         }
-    
+        
         $modelDowntime = new Downtime();
         $modelWeekDowntime = new DowntimeWeek();
         $modelMonthDowntime = new DowntimeMonth();
         $insertedCount = 0;
-
-        $monthsIndo = [
-            '01' => 'Januari', '02' => 'Februari', '03' => 'Maret', '04' => 'April', '05' => 'Mei',
-            '06' => 'Juni', '07' => 'Juli', '08' => 'Agustus', '09' => 'September', '10' => 'Oktober', 
-            '11' => 'November', '12' => 'Desember'
-        ];
     
-        $weeks = [
-            ['W1', '2024-01-01', '2024-01-07'],
-            ['W2', '2024-01-08', '2024-01-14'],
-            ['W3', '2024-01-15', '2024-01-21'],
-            ['W4', '2024-01-22', '2024-01-28'],
-            ['W5', '2024-01-29', '2024-02-04'],
-            ['W6', '2024-02-05', '2024-02-11'],
-            ['W7', '2024-02-12', '2024-02-18'],
-            ['W8', '2024-02-19', '2024-02-25'],
-            ['W9', '2024-02-26', '2024-03-03'],
-            ['W10', '2024-03-04', '2024-03-10'],
-            ['W11', '2024-03-11', '2024-03-17'],
-            ['W12', '2024-03-18', '2024-03-24'],
-            ['W13', '2024-03-25', '2024-03-31'],
-            ['W14', '2024-04-01', '2024-04-07'],
-            ['W15', '2024-04-08', '2024-04-14'],
-            ['W16', '2024-04-15', '2024-04-21'],
-            ['W17', '2024-04-22', '2024-04-28'],
-            ['W18', '2024-04-29', '2024-05-05'],
-            ['W19', '2024-05-06', '2024-05-12'],
-            ['W20', '2024-05-13', '2024-05-19'],
-            ['W21', '2024-05-20', '2024-05-26'],
-            ['W22', '2024-05-27', '2024-06-02'],
-            ['W23', '2024-06-03', '2024-06-09'],
-            ['W24', '2024-06-10', '2024-06-16'],
-            ['W25', '2024-06-17', '2024-06-23'],
-            ['W26', '2024-06-24', '2024-06-30'],
-            ['W27', '2024-07-01', '2024-07-07'],
-            ['W28', '2024-07-08', '2024-07-14'],
-            ['W29', '2024-07-15', '2024-07-21'],
-            ['W30', '2024-07-22', '2024-07-28'],
-            ['W31', '2024-07-29', '2024-08-04'],
-            ['W32', '2024-08-05', '2024-08-11'],
-            ['W33', '2024-08-12', '2024-08-18'],
-            ['W34', '2024-08-19', '2024-08-25'],
-            ['W35', '2024-08-26', '2024-09-01'],
-            ['W36', '2024-09-02', '2024-09-08'],
-            ['W37', '2024-09-09', '2024-09-15'],
-            ['W38', '2024-09-16', '2024-09-22'],
-            ['W39', '2024-09-23', '2024-09-29'],
-            ['W40', '2024-09-30', '2024-10-06'],
-            ['W41', '2024-10-07', '2024-10-13'],
-            ['W42', '2024-10-14', '2024-10-20'],
-            ['W43', '2024-10-21', '2024-10-27'],
-            ['W44', '2024-10-28', '2024-11-03'],
-            ['W45', '2024-11-04', '2024-11-10'],
-            ['W46', '2024-11-11', '2024-11-17'],
-            ['W47', '2024-11-18', '2024-11-24'],
-            ['W48', '2024-11-25', '2024-12-01'],
-            ['W49', '2024-12-02', '2024-12-08'],
-            ['W50', '2024-12-09', '2024-12-15'],
-            ['W51', '2024-12-16', '2024-12-22'],
-            ['W52', '2024-12-23', '2024-12-29']
+        $monthsIndo = [
+            '01' => 'January', '02' => 'February', '03' => 'March', '04' => 'April',
+            '05' => 'May', '06' => 'June', '07' => 'July', '08' => 'August',
+            '09' => 'September', '10' => 'October', '11' => 'November', '12' => 'December'
         ];
+        
+        function generateWeeks($year) {
+            $startOfYear = strtotime("last Monday of December " . ($year - 1)); 
+            $weeks = [];
+            $weekNumber = 1;
+        
+            while (date('Y', $startOfYear) <= $year) {
+                $weekStart = date('Y-m-d', $startOfYear);
+                $weekEnd = date('Y-m-d', strtotime("+6 days", $startOfYear));
+                
+                $weeks[] = [
+                    sprintf("W%02d", $weekNumber),
+                    $weekStart,
+                    $weekEnd
+                ];
+                
+                $startOfYear = strtotime("+1 week", $startOfYear);
+                $weekNumber++;
+            }
+        
+            return $weeks;
+        }    
+
+        $years = date('Y'); 
+        $weeks = generateWeeks($years);
     
         foreach ($tempData as $entry) {
-    
             $dataDowntime = [
                 'tgl_bln_thn' => $entry->date,
                 'shift' => $entry->shift,
@@ -1625,8 +1596,11 @@ class User extends Controller
                 ];
                 $modelWeekDowntime->update($existingData['id_dtm'], $updatedData);
             } else {
+                $v_week = intval(substr($week, 1));
+    
                 $dataWeekDowntime = [
                     'week' => $week,
+                    'v_week' => $v_week,
                     'year' => $year,
                     'line' => $entry->line,
                     'station' => $entry->station,
@@ -1635,7 +1609,7 @@ class User extends Controller
                 $modelWeekDowntime->insert($dataWeekDowntime);
                 $insertedCount++;
             }
-
+    
             // Insert or update data in ProduksiMonth table
             $existingMonthData = $modelMonthDowntime->where([
                 'month' => $monthName,
@@ -1643,7 +1617,7 @@ class User extends Controller
                 'line' => $entry->line,
                 'station' => $entry->station,
             ])->first();
-
+    
             if ($existingMonthData) {
                 $updatedMonthData = [
                     'downtime' => $existingData['downtime'] + $entry->downtime,
@@ -2149,65 +2123,36 @@ class User extends Controller
         $insertedCount = 0;
 
         $monthsIndo = [
-            '01' => 'Januari', '02' => 'Februari', '03' => 'Maret', '04' => 'April', '05' => 'Mei',
-            '06' => 'Juni', '07' => 'Juli', '08' => 'Agustus', '09' => 'September', '10' => 'Oktober', 
-            '11' => 'November', '12' => 'Desember'
+            '01' => 'January', '02' => 'February', '03' => 'March', '04' => 'April',
+            '05' => 'May', '06' => 'June', '07' => 'July', '08' => 'August',
+            '09' => 'September', '10' => 'October', '11' => 'November', '12' => 'December'
         ];
 
-        $weeks = [
-            ['W1', '2024-01-01', '2024-01-07'],
-            ['W2', '2024-01-08', '2024-01-14'],
-            ['W3', '2024-01-15', '2024-01-21'],
-            ['W4', '2024-01-22', '2024-01-28'],
-            ['W5', '2024-01-29', '2024-02-04'],
-            ['W6', '2024-02-05', '2024-02-11'],
-            ['W7', '2024-02-12', '2024-02-18'],
-            ['W8', '2024-02-19', '2024-02-25'],
-            ['W9', '2024-02-26', '2024-03-03'],
-            ['W10', '2024-03-04', '2024-03-10'],
-            ['W11', '2024-03-11', '2024-03-17'],
-            ['W12', '2024-03-18', '2024-03-24'],
-            ['W13', '2024-03-25', '2024-03-31'],
-            ['W14', '2024-04-01', '2024-04-07'],
-            ['W15', '2024-04-08', '2024-04-14'],
-            ['W16', '2024-04-15', '2024-04-21'],
-            ['W17', '2024-04-22', '2024-04-28'],
-            ['W18', '2024-04-29', '2024-05-05'],
-            ['W19', '2024-05-06', '2024-05-12'],
-            ['W20', '2024-05-13', '2024-05-19'],
-            ['W21', '2024-05-20', '2024-05-26'],
-            ['W22', '2024-05-27', '2024-06-02'],
-            ['W23', '2024-06-03', '2024-06-09'],
-            ['W24', '2024-06-10', '2024-06-16'],
-            ['W25', '2024-06-17', '2024-06-23'],
-            ['W26', '2024-06-24', '2024-06-30'],
-            ['W27', '2024-07-01', '2024-07-07'],
-            ['W28', '2024-07-08', '2024-07-14'],
-            ['W29', '2024-07-15', '2024-07-21'],
-            ['W30', '2024-07-22', '2024-07-28'],
-            ['W31', '2024-07-29', '2024-08-04'],
-            ['W32', '2024-08-05', '2024-08-11'],
-            ['W33', '2024-08-12', '2024-08-18'],
-            ['W34', '2024-08-19', '2024-08-25'],
-            ['W35', '2024-08-26', '2024-09-01'],
-            ['W36', '2024-09-02', '2024-09-08'],
-            ['W37', '2024-09-09', '2024-09-15'],
-            ['W38', '2024-09-16', '2024-09-22'],
-            ['W39', '2024-09-23', '2024-09-29'],
-            ['W40', '2024-09-30', '2024-10-06'],
-            ['W41', '2024-10-07', '2024-10-13'],
-            ['W42', '2024-10-14', '2024-10-20'],
-            ['W43', '2024-10-21', '2024-10-27'],
-            ['W44', '2024-10-28', '2024-11-03'],
-            ['W45', '2024-11-04', '2024-11-10'],
-            ['W46', '2024-11-11', '2024-11-17'],
-            ['W47', '2024-11-18', '2024-11-24'],
-            ['W48', '2024-11-25', '2024-12-01'],
-            ['W49', '2024-12-02', '2024-12-08'],
-            ['W50', '2024-12-09', '2024-12-15'],
-            ['W51', '2024-12-16', '2024-12-22'],
-            ['W52', '2024-12-23', '2024-12-29']
-        ];
+        function generateWeeks($year) {
+            $startOfYear = strtotime("last Monday of December " . ($year - 1)); 
+            $weeks = [];
+            $weekNumber = 1;
+        
+            while (date('Y', $startOfYear) <= $year) {
+                $weekStart = date('Y-m-d', $startOfYear);
+                $weekEnd = date('Y-m-d', strtotime("+6 days", $startOfYear));
+                
+                $weeks[] = [
+                    sprintf("W%02d", $weekNumber),
+                    $weekStart,
+                    $weekEnd
+                ];
+                
+                $startOfYear = strtotime("+1 week", $startOfYear);
+                $weekNumber++;
+            }
+        
+            return $weeks;
+        }    
+
+        $years = date('Y'); 
+        $weeks = generateWeeks($years);
+
 
         foreach ($tempData as $entry) {
             $actualProd = $entry->actual_prod;
@@ -2256,8 +2201,12 @@ class User extends Controller
                 ];
                 $modelWeekProduksi->update($existingData['id_rpt'], $updatedData);
             } else {
+
+                $v_week = intval(substr($week, 1));
+
                 $dataWeekProduksi = [
                     'week' => $week,
+                    'v_week' => $v_week,
                     'year' => $year,
                     'line' => $entry->line,
                     'model' => $entry->model,
@@ -2309,8 +2258,6 @@ class User extends Controller
         }
     }
 
-    
-
     public function submitReportsch()
     {
         // Access form data using getPost
@@ -2332,67 +2279,36 @@ class User extends Controller
         $insertedCount = 0;
 
         $monthsIndo = [
-            '01' => 'Januari', '02' => 'Februari', '03' => 'Maret', '04' => 'April', '05' => 'Mei',
-            '06' => 'Juni', '07' => 'Juli', '08' => 'Agustus', '09' => 'September', '10' => 'Oktober', 
-            '11' => 'November', '12' => 'Desember'
+            '01' => 'January', '02' => 'February', '03' => 'March', '04' => 'April',
+            '05' => 'May', '06' => 'June', '07' => 'July', '08' => 'August',
+            '09' => 'September', '10' => 'October', '11' => 'November', '12' => 'December'
         ];
 
-        $weeks = [
-            ['W1', '2024-01-01', '2024-01-07'],
-            ['W2', '2024-01-08', '2024-01-14'],
-            ['W3', '2024-01-15', '2024-01-21'],
-            ['W4', '2024-01-22', '2024-01-28'],
-            ['W5', '2024-01-29', '2024-02-04'],
-            ['W6', '2024-02-05', '2024-02-11'],
-            ['W7', '2024-02-12', '2024-02-18'],
-            ['W8', '2024-02-19', '2024-02-25'],
-            ['W9', '2024-02-26', '2024-03-03'],
-            ['W10', '2024-03-04', '2024-03-10'],
-            ['W11', '2024-03-11', '2024-03-17'],
-            ['W12', '2024-03-18', '2024-03-24'],
-            ['W13', '2024-03-25', '2024-03-31'],
-            ['W14', '2024-04-01', '2024-04-07'],
-            ['W15', '2024-04-08', '2024-04-14'],
-            ['W16', '2024-04-15', '2024-04-21'],
-            ['W17', '2024-04-22', '2024-04-28'],
-            ['W18', '2024-04-29', '2024-05-05'],
-            ['W19', '2024-05-06', '2024-05-12'],
-            ['W20', '2024-05-13', '2024-05-19'],
-            ['W21', '2024-05-20', '2024-05-26'],
-            ['W22', '2024-05-27', '2024-06-02'],
-            ['W23', '2024-06-03', '2024-06-09'],
-            ['W24', '2024-06-10', '2024-06-16'],
-            ['W25', '2024-06-17', '2024-06-23'],
-            ['W26', '2024-06-24', '2024-06-30'],
-            ['W27', '2024-07-01', '2024-07-07'],
-            ['W28', '2024-07-08', '2024-07-14'],
-            ['W29', '2024-07-15', '2024-07-21'],
-            ['W30', '2024-07-22', '2024-07-28'],
-            ['W31', '2024-07-29', '2024-08-04'],
-            ['W32', '2024-08-05', '2024-08-11'],
-            ['W33', '2024-08-12', '2024-08-18'],
-            ['W34', '2024-08-19', '2024-08-25'],
-            ['W35', '2024-08-26', '2024-09-01'],
-            ['W36', '2024-09-02', '2024-09-08'],
-            ['W37', '2024-09-09', '2024-09-15'],
-            ['W38', '2024-09-16', '2024-09-22'],
-            ['W39', '2024-09-23', '2024-09-29'],
-            ['W40', '2024-09-30', '2024-10-06'],
-            ['W41', '2024-10-07', '2024-10-13'],
-            ['W42', '2024-10-14', '2024-10-20'],
-            ['W43', '2024-10-21', '2024-10-27'],
-            ['W44', '2024-10-28', '2024-11-03'],
-            ['W45', '2024-11-04', '2024-11-10'],
-            ['W46', '2024-11-11', '2024-11-17'],
-            ['W47', '2024-11-18', '2024-11-24'],
-            ['W48', '2024-11-25', '2024-12-01'],
-            ['W49', '2024-12-02', '2024-12-08'],
-            ['W50', '2024-12-09', '2024-12-15'],
-            ['W51', '2024-12-16', '2024-12-22'],
-            ['W52', '2024-12-23', '2024-12-29']
-        ];
+        function generateWeeks($year) {
+            $startOfYear = strtotime("last Monday of December " . ($year - 1)); 
+            $weeks = [];
+            $weekNumber = 1;
+        
+            while (date('Y', $startOfYear) <= $year) {
+                $weekStart = date('Y-m-d', $startOfYear);
+                $weekEnd = date('Y-m-d', strtotime("+6 days", $startOfYear));
+                
+                $weeks[] = [
+                    sprintf("W%02d", $weekNumber),
+                    $weekStart,
+                    $weekEnd
+                ];
+                
+                $startOfYear = strtotime("+1 week", $startOfYear);
+                $weekNumber++;
+            }
+        
+            return $weeks;
+        }    
 
-        // Determine the week based on the date
+        $years = date('Y'); 
+        $weeks = generateWeeks($years);
+
         foreach ($weeks as $week) {
             $startDate = strtotime($week[1]);
             $endDate = strtotime($week[2]);
@@ -2444,9 +2360,11 @@ class User extends Controller
                 $insertedCount++;
             }
         } else {
-            // Insert new entry
+            $v_week = intval(substr($weekName, 1));
+
             $datamodelWeekSchedule = [
                 'week' => $weekName,
+                'v_week' => $v_week,
                 'year' => $year,
                 'line' => $line,
                 'reguler' => $reguler,
@@ -2508,58 +2426,74 @@ class User extends Controller
         $downtimeModel = new Downtime();
         $scheduleModel = new Schedule();
         $calculationModel = new Calculation();
-        
+    
         $requestData = $this->request->getJSON();
         $tgl_bln_thn = $requestData->tgl_bln_thn;
         $line = $requestData->line;
         $shift = $requestData->shift;
-        
-        // Validasi input
+    
         if (!$this->validateParameters($tgl_bln_thn, $line, $shift)) {
             return $this->response->setJSON(['success' => false, 'message' => 'Parameter Kalkulasi Belum Terpenuhi.']);
         }
-
+    
         // Ambil data produksi
         $productions = $produksiModel->where(['tgl_bln_thn' => $tgl_bln_thn, 'line' => $line, 'shift' => $shift])
-            ->select('SUM(actual_prod) AS total_actual_prod, SUM(plan_prod) AS total_plan_prod, SUM(cycle_time * actual_prod) AS total_cycle_time, SUM(cta) AS total_cta')
+            ->select('SUM(actual_prod) AS total_actual_prod, 
+                      SUM(plan_prod) AS total_plan_prod, 
+                      SUM(cycle_time * actual_prod) AS total_cycle_time, 
+                      SUM(cta) AS total_cta, 
+                      STRING_AGG(model, \',\') AS models')
             ->first();
-
+    
         if (!$productions) {
             return $this->response->setJSON(['success' => false, 'message' => 'Data Produksi tidak ditemukan.']);
         }
-
+    
         // Ambil data schedule
         $schedule = $scheduleModel->where(['tgl_bln_thn' => $tgl_bln_thn, 'line' => $line, 'shift' => $shift])->first();
         if (!$schedule) {
             return $this->response->setJSON(['success' => false, 'message' => 'Data Schedule tidak ditemukan.']);
         }
-
+    
         $reguler = $schedule['reguler'];
         $overtime = $schedule['overtime'];
         $ro = $reguler + $overtime;
-
+    
         // Ambil data downtime
         $downtimes = $downtimeModel->where(['tgl_bln_thn' => $tgl_bln_thn, 'line' => $line, 'shift' => $shift])
             ->select('SUM(downtime) AS total_downtime, SUM(downtime) AS s_downtime')
             ->first();
-
+    
         $total_downtime = $downtimes ? $downtimes['total_downtime'] : 0;
         $total_downtime_hours = $total_downtime / 60;
         $s_downtime = $downtimes ? $downtimes['s_downtime'] : 0;
-
+    
         $total_actual_prod = $productions['total_actual_prod'];
         $total_plan_prod = $productions['total_plan_prod'];
         $total_cta = $productions['total_cta'];
-
+        
+        $modelsArray = array_unique(array_filter(array_map('trim', explode(',', $productions['models']))));
+    
+        if (empty($modelsArray)) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Model tidak ditemukan.']);
+        }
+    
+        $models = implode(',', $modelsArray);
+    
         // Perhitungan OEE, BTS, dan Avail
         $oee = ($total_cta != 0) ? $total_cta / ($ro * 3600) : 0;
         $bts = ($total_plan_prod != 0) ? $total_actual_prod / $total_plan_prod : 0;
-        $avail = ($ro - $total_downtime_hours) / $ro;
-
-        // pengecekan data tabel daily_calculation
+        $avail = ($ro != 0) ? max(0, ($ro - $total_downtime_hours) / $ro) : 0;
+    
         $existingCalculation = $calculationModel->where(['tgl_bln_thn' => $tgl_bln_thn, 'line' => $line, 'shift' => $shift])->first();
         if ($existingCalculation) {
+            $existingModels = explode(',', $existingCalculation['model']);
+            $newModels = array_unique(array_merge($existingModels, $modelsArray));
+            sort($newModels);
+            $updatedModels = implode(',', $newModels);
+    
             $calculationModel->update($existingCalculation['id_clc'], [
+                'model' => $updatedModels,
                 'oee' => number_format($oee, 6, '.', ''),
                 'bts' => number_format($bts, 6, '.', ''),
                 'avail' => number_format($avail, 6, '.', ''),
@@ -2570,38 +2504,31 @@ class User extends Controller
                 'tgl_bln_thn' => $tgl_bln_thn,
                 'line' => $line,
                 'shift' => $shift,
+                'model' => $models,
                 'oee' => number_format($oee, 6, '.', ''),
                 'bts' => number_format($bts, 6, '.', ''),
                 'avail' => number_format($avail, 6, '.', ''),
                 's_downtime' => $s_downtime
             ]);
         }
-
-        // Perhitungan kalkulasi Weekly dan Monthly
-        $this->calculateAndSaveAverage($line, $tgl_bln_thn);
-        $this->CalculateDataWeek();
-        $this->CalculateDataMonth();
-
-        return $this->response->setJSON(['success' => true]);
+    
+        // Kalkulasi Weekly dan Monthly
+        $this->CalculateDataWeek($tgl_bln_thn, $line, $shift);
+        $this->CalculateDataMonth($tgl_bln_thn, $line, $shift);
+    
+        return $this->response->setJSON(['success' => true, 'message' => 'Kalkulasi berhasil.']);
     }
-
-    private function CalculateDataWeek()
+    
+    private function CalculateDataWeek($tgl_bln_thn, $line, $shift)
     {
         $produksiWeekModel = new ProduksiWeek();
         $downtimeWeekModel = new DowntimeWeek();
         $scheduleWeekModel = new ScheduleWeek();
         $calculationWeekModel = new CalculationWeek();
 
-        $requestData = $this->request->getJSON();
-        $tgl_bln_thn = $requestData->tgl_bln_thn;
-        $line = $requestData->line;
-        $shift = $requestData->shift;
-
         if (!$this->validateParameters($tgl_bln_thn, $line, $shift)) {
             return $this->response->setJSON(['success' => false, 'message' => 'Parameter Kalkulasi Belum Terpenuhi.']);
         }
-
-        
 
         $date = new \DateTime($tgl_bln_thn);
         $week = 'W' . $date->format('W');
@@ -2640,7 +2567,7 @@ class User extends Controller
         // Calculate OEE, BTS, and Avail
         $oee = ($total_cta != 0) ? $total_cta / ($ro * 3600) : 0;
         $bts = ($total_plan_prod != 0) ? $total_actual_prod / $total_plan_prod : 0;
-        $avail = ($ro - $total_downtime_hours) / $ro;
+        $avail = ($ro != 0) ? max(0, ($ro - $total_downtime_hours) / $ro) : 0;
 
         // Save or update the calculation data
         $existingCalculation = $calculationWeekModel->where([
@@ -2649,12 +2576,15 @@ class User extends Controller
             'line' => $line
         ])->first();
 
+        $v_week = intval(substr($week, -1));
+
         if ($existingCalculation) {
             $calculationWeekModel->update($existingCalculation['id_clc'], [
                 'oee' => number_format($oee, 6, '.', ''),
                 'bts' => number_format($bts, 6, '.', ''),
                 'avail' => number_format($avail, 6, '.', ''),
                 's_downtime' => $s_downtime,
+                'v_week' => $v_week,
             ]);
         } else {
             $calculationWeekModel->insert([
@@ -2665,23 +2595,19 @@ class User extends Controller
                 'bts' => number_format($bts, 6, '.', ''),
                 'avail' => number_format($avail, 6, '.', ''),
                 's_downtime' => $s_downtime,
+                'v_week' => $v_week,
             ]);
         }
 
         return $this->response->setJSON(['success' => true]);
     }
 
-    private function CalculateDataMonth()
+    private function CalculateDataMonth($tgl_bln_thn, $line, $shift)
     {
         $produksiMonthModel = new ProduksiMonth();
         $downtimeMonthModel = new DowntimeMonth();
         $scheduleMonthModel = new ScheduleMonth();
         $calculationMonthModel = new CalculationMonth();
-
-        $requestData = $this->request->getJSON();
-        $tgl_bln_thn = $requestData->tgl_bln_thn;
-        $line = $requestData->line;
-        $shift = $requestData->shift;
 
         if (!$this->validateParameters($tgl_bln_thn, $line, $shift)) {
             return $this->response->setJSON(['success' => false, 'message' => 'Parameter Kalkulasi Belum Terpenuhi.']);
@@ -2737,7 +2663,7 @@ class User extends Controller
         // Calculate OEE, BTS, and Avail
         $oee = ($total_cta != 0) ? $total_cta / ($ro * 3600) : 0;
         $bts = ($total_plan_prod != 0) ? $total_actual_prod / $total_plan_prod : 0;
-        $avail = ($ro - $total_downtime_hours) / $ro;
+        $avail = ($ro != 0) ? max(0, ($ro - $total_downtime_hours) / $ro) : 0;
 
         $existingCalculation = $calculationMonthModel->where([
             'month' => $monthName,
@@ -2862,9 +2788,6 @@ class User extends Controller
         // Kembalikan true jika semua data ada
         return $productionExists && $scheduleExists && $downtimeExists;
     }
-   
-
-    
 
 
 }
